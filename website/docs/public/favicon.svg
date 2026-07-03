@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#0B0E14"/>
+  <!-- 注入向量：从左下指向右上的青色箭头，穿透一条分段线 -->
+  <path d="M14 46 L40 20" stroke="#3DD8C8" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M34 18 L42 18 L42 26" stroke="#3DD8C8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 被穿透的目标线 -->
+  <path d="M16 22 L48 42" stroke="#E8A838" stroke-width="2.5" stroke-linecap="round" opacity="0.8" stroke-dasharray="3 4"/>
+  <!-- 基点 -->
+  <circle cx="14" cy="46" r="3" fill="#3DD8C8"/>
+</svg>
