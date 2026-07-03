@@ -21,6 +21,8 @@
 | **手动触发** | 同上 | 在 Actions 页 `workflow_dispatch` 手动运行 |
 | **自定义域名** | `https://docs.your-domain.com/` | 配置 CNAME 并把 `base` 改为 `/` |
 
+> ✅ 当前站点已上线：**<https://android-security-engineer.github.io/Vector-skills/>**，push 到 `master` 改动 `website/**` 即自动重新部署。
+
 > ⚠️ 因配置了 `base: '/Vector-skills/'`，站点运行在子路径下。所有内部链接、静态资源路径都带此前缀；自定义域名时需同步调整 `base`，否则资源 404。
 
 ::: tip 何时会触发部署
