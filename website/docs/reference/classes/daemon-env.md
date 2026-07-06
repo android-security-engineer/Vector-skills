@@ -7,6 +7,118 @@
 
 为 Daemon 提供三个**独立运行的环境守护**：`CliSocketServer` 接收 CLI 的本地 socket 连接；`Dex2OatServer` 通过 bind mount 劫持系统 dex2oat 并向 wrapper 提供 hooker FD；`LogcatMonitor` 驱动 native logcat 进程，按 tag 分流到 modules/verbose 日志文件。
 
+## 类协作
+
+三个 `object` 均挂在 [`VectorDaemon.scope`](./daemon-entry#vectordaemon) 协程上独立运行，互不阻塞。[`CliSocketServer`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/CliSocketServer.kt) 在日志流命令时直接调用 [`LogcatMonitor`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/LogcatMonitor.kt) 取日志文件经 ancillary FD 回传；[`Dex2OatServer`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/Dex2OatServer.kt) 通过 native `doMountNative`/`getSockPath` 与 C++ wrapper 交互。三者都依赖 [`FileSystem`](./daemon-data#filesystem) 提供路径与资源。
+
+```mermaid
+classDiagram
+    direction LR
+    class VectorDaemon {
+        <<entry>>
+        +scope: CoroutineScope
+        +main()
+    }
+    class CliSocketServer {
+        -isRunning: boolean
+        +start()
+        -handleClient(LocalSocket)
+    }
+    class Dex2OatServer {
+        -dex2oatArray: String~?~[6]
+        -fdArray: FileDescriptor~?~[6]
+        +compatibility: int$
+        -selinuxObserver: FileObserver
+        +start()
+        -runSocketLoop()
+        -doMount(boolean)
+        -checkAndAddDex2Oat(String)
+        -hasSePolicyErrors() boolean
+    }
+    class LogcatMonitor {
+        -modulesFd: int
+        -verboseFd: int
+        -moduleLogs: ThreadSafeLRU
+        -verboseLogs: ThreadSafeLRU
+        +start()
+        +getVerboseLog() File
+        +getModulesLog() File
+        +refresh(boolean)
+        -refreshFd(boolean) int
+        -runLogcat()$
+    }
+    class ThreadSafeLRU {
+        -map: LinkedHashMap~File,Unit~
+        +add(File)
+    }
+    class FileSystem {
+        <<data 包>>
+        +socketPath$
+        +setupCli()$
+        +getNewVerboseLogPath()$
+    }
+    class CliHandler {
+        <<ipc 包>>
+        +execute(CliRequest)$ CliResponse
+    }
+
+    CliSocketServer ..> VectorDaemon : scope.launch
+    Dex2OatServer ..> VectorDaemon : scope.launch
+    LogcatMonitor ..> VectorDaemon : scope.launch
+    CliSocketServer ..> LogcatMonitor : log stream 取文件
+    CliSocketServer ..> CliHandler : 标准命令分发
+    CliSocketServer ..> FileSystem : setupCli/路径
+    LogcatMonitor *-- ThreadSafeLRU : moduleLogs/verboseLogs
+    Dex2OatServer ..> FileSystem : wrapper/hooker 路径
+```
+
+`Dex2OatServer` 的劫持与 SELinux 监听时序：
+
+```mermaid
+sequenceDiagram
+    participant VD as VectorDaemon
+    participant D2O as Dex2OatServer
+    participant Native as doMountNative/setSockPath
+    participant SO as selinuxObserver
+    participant SEL as /sys/fs/selinux
+    participant Wrap as C++ dex2oat wrapper
+
+    VD->>D2O: start()
+    D2O->>D2O: init 块按 Android 版本<br/>checkAndAddDex2Oat 探 ELF magic
+    D2O->>D2O: notMounted()? doMount(true)
+    alt 仍 notMounted
+        D2O->>D2O: doMount(false)<br/>compatibility=MOUNT_FAILED
+        D2O-->>VD: 返回(失败)
+    else 已挂载
+        D2O->>SO: startWatching() + 触发一次
+        loop SELinux 状态变更
+            SEL->>SO: CLOSE_WRITE(enforce/policy)
+            SO->>SEL: 读 enforce
+            alt permissive
+                SO->>D2O: doMount(false)<br/>compatibility=SELINUX_PERMISSIVE
+            alt hasSePolicyErrors
+                SO->>D2O: compatibility=SEPOLICY_INCORRECT
+            else 恢复强制且策略正确
+                SO->>D2O: doMount(true)
+                alt notMounted
+                    SO->>D2O: MOUNT_FAILED + stopWatching
+                else
+                    SO->>D2O: compatibility=OK
+                end
+            end
+            end
+        end
+        D2O->>Native: 选 socket 上下文(dex2oat/installd)
+        D2O->>Native: getSockPath() → LocalServerSocket.accept()
+        loop wrapper 连接
+            Wrap->>D2O: connect + 写 1 字节 id
+            D2O->>D2O: fdArray[id] 非 null?
+            D2O->>Wrap: setFileDescriptorsForSend(hookerFD)<br/>写触发字节承载 ancillary FD
+        end
+        Note over D2O,Wrap: 崩溃则 doMount(false)<br/>compatibility=CRASHED
+    end
+```
+
 ## 类清单
 
 | 类 | 说明 |
@@ -19,7 +131,7 @@
 
 ## CliSocketServer
 
-`object CliSocketServer` — 在 `FileSystem.socketPath`（`.cli_sock`）上监听的本地 socket 服务。低优先级后台线程 accept，每个客户端在 `VectorDaemon.scope` 协程中处理。
+[`CliSocketServer.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/CliSocketServer.kt) — `object CliSocketServer` — 在 `FileSystem.socketPath`（`.cli_sock`）上监听的本地 socket 服务。低优先级后台线程 accept，每个客户端在 `VectorDaemon.scope` 协程中处理。
 
 ### 启动与协议
 
@@ -55,7 +167,7 @@ if (request.command == "log" && request.action == "stream") {
 
 ## Dex2OatServer
 
-`object Dex2OatServer` — 劫持系统 dex2oat 编译管线。通过 bind mount 把 wrapper（`bin/dex2oat32/64`）覆盖到真实的 dex2oat 上，wrapper 通过 socket 向 daemon 请求 hooker `.so` 的 FD，从而注入 LSPlant。详见 [dex2oat 劫持](../modules/dex2oat)。
+[`Dex2OatServer.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/Dex2OatServer.kt) — `object Dex2OatServer` — 劫持系统 dex2oat 编译管线。通过 bind mount 把 wrapper（`bin/dex2oat32/64`）覆盖到真实的 dex2oat 上，wrapper 通过 socket 向 daemon 请求 hooker `.so` 的 FD，从而注入 LSPlant。详见 [dex2oat 劫持](../modules/dex2oat)。
 
 ### 兼容性状态常量
 
@@ -124,7 +236,7 @@ fun start()   // 幂等
 
 ## LogcatMonitor
 
-`object LogcatMonitor` — 驱动 native `runLogcat()` 进程，管理 modules/verbose 两路日志文件的 FD 轮转。日志按 tag 分流：模块相关 tag 进 modules 流，框架/内核相关 tag 进 verbose 流。
+[`LogcatMonitor.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/LogcatMonitor.kt) — `object LogcatMonitor` — 驱动 native `runLogcat()` 进程，管理 modules/verbose 两路日志文件的 FD 轮转。日志按 tag 分流：模块相关 tag 进 modules 流，框架/内核相关 tag 进 verbose 流。
 
 ### native 方法
 
@@ -170,6 +282,28 @@ fun getModulesLog(): File?
 5. 更新 `verboseFd`/`modulesFd` 并返回 FD
 
 `FD_MODE` = `WRITE_ONLY | CREATE | TRUNCATE | APPEND`。
+
+`refreshFd` 的 FD 轮转与删除日志复活流程：
+
+```mermaid
+flowchart TD
+    A["native 端经 JNI 回调<br/>refreshFd(isVerboseLog)"] --> B["checkFd(fd)"]
+    B --> C{"st_nlink == 0?<br/>(文件被外部删除)"}
+    C -- 是 --> D["从 /proc/self/fd 读 symlink<br/>恢复原文件名副本<br/>chattr0 父目录"]
+    C -- 否 --> E["getNewVerboseLogPath/<br/>getNewModulesLogPath<br/>生成带时间戳新文件"]
+    D --> E
+    E --> F["ThreadSafeLRU.add(file)<br/>超出 10 条删最旧"]
+    F --> G["chattr0(父目录)"]
+    G --> H["ParcelFileDescriptor.open<br/>(file, FD_MODE).detachFd()"]
+    H --> I["更新 verboseFd/modulesFd"]
+    I --> J["返回新 FD 给 native"]
+
+    classDef default fill:#143a4a,color:#fff,stroke:#4fb3d8
+    classDef cond fill:#3a2a10,color:#fff,stroke:#e8a838
+    classDef leaf fill:#1a3a1a,color:#fff,stroke:#5cd980
+    class C cond
+    class J leaf
+```
 
 ### ThreadSafeLRU
 

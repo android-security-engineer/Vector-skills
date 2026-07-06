@@ -9,7 +9,74 @@
 
 桩类只声明签名（方法空实现、字段占位），编译期满足引用，运行期 JVM/ART 加载系统真实类。每个桩对应一个 AOSP 内部类，按原始包名组织。
 
+### 编译期桩生成与消费流程
+
+stubs 是纯 `java-library`（见 [`hiddenapi/stubs/build.gradle.kts`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/build.gradle.kts)），无 Android 依赖，Java 8 字节码。手工编写的空壳类按 AOSP 原始包名组织，被 bridge / xposed / services 等模块以 `compileOnly` 消费：
+
+```mermaid
+graph TD
+    AOSP["AOSP 源码里的<br/>内部类签名"]:::in
+    AOSP -->|"人工镜像签名"| SRC["stubs 桩源码<br/>(空实现 + throw STUB)"]:::stub
+    SRC -->|"java-library 编译"| JAR["stubs.jar / .class"]:::stub
+    JAR -->|"compileOnly"| CONSUMERS["bridge · xposed · services<br/>等消费模块"]:::code
+    CONSUMERS -->|"编译通过<br/>引用解析到桩类型"| DEX["模块 dex 产物"]:::code
+    DEX -->|"运行期类加载器<br/>优先解析系统镜像"| REAL["设备真实 AOSP 类"]:::real
+    JAR -.->|"不进最终产物<br/>(compileOnly)"| NOJAR[" "]
+    classDef in fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef stub fill:#3a2a10,stroke:#e8a838,color:#ffd9b0
+    classDef code fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef real fill:#143a4a,stroke:#4fb3d8,color:#bff0f5
+```
+
+> `compileOnly` 是关键——桩只为编译期存在，不打包进任何运行期产物，运行期由设备系统镜像提供真实类。这也是为什么桩方法体可以只写 `throw new RuntimeException("STUB")`。
+
 ## 按包总览
+
+桩按 AOSP 原始包名组织，下面这张图把所有包按"应用进程 / 系统 / 运行时 / 资源 Hook 专用"四类归并，展示包之间的逻辑分层与典型依赖走向：
+
+```mermaid
+graph TD
+    subgraph APP["应用进程内部"]
+        APP1["android.app<br/>ActivityThread · LoadedApk"]:::app
+        CT1["android.content / .pm<br/>Context · PackageManager"]:::app
+        RES1["android.content.res<br/>ResourcesImpl · AssetManager"]:::res
+    end
+    subgraph SYS["系统层"]
+        OS1["android.os<br/>ServiceManager · Binder"]:::sys
+        SYS1["android.system / .util<br/>Os · MutableInt"]:::sys
+        PERM1["android.permission<br/>IPermissionManager"]:::sys
+        VIEW1["android.view · android.graphics<br/>IWindowManager · Drawable"]:::sys
+    end
+    subgraph RT["运行时 / Zygote"]
+        DV1["dalvik.system<br/>BaseDexClassLoader · VMRuntime"]:::rt
+        ZG1["com.android.internal.os<br/>ZygoteInit · BinderInternal"]:::rt
+        SRV1["com.android.server(.am)<br/>ActivityManagerService"]:::rt
+    end
+    subgraph XPOS["资源 Hook 专用"]
+        XD1["xposed.dummy<br/>XResourcesSuperClass"]:::xpos
+        WK1["android.webkit<br/>WebViewFactory"]:::xpos
+    end
+    subgraph MISC["杂项 / 注解"]
+        ANN1["android.annotation / androidx.annotation<br/>RequiresApi · NonNull"]:::misc
+        SUN1["sun.* / org.xmlpull<br/>CompoundEnumeration"]:::misc
+        DDM1["android.ddm<br/>DdmHandleAppName"]:::misc
+    end
+    APP1 -.消费.-> BR["bridge / xposed / services"]:::consumer
+    CT1 -.消费.-> BR
+    OS1 -.消费.-> BR
+    DV1 -.被继承.-> BR
+    ZG1 -.挂钩点.-> BR
+    XD1 -.运行期动态生成.-> BR
+    classDef app fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef res fill:#143a4a,stroke:#4fb3d8,color:#bff0f5
+    classDef sys fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef rt fill:#3a2a10,stroke:#e8a838,color:#ffd9b0
+    classDef xpos fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+    classDef misc fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef consumer fill:#143a4a,stroke:#4fb3d8,color:#bff0f5
+```
+
+> 同色的包属于同一逻辑层。`xposed.dummy` 是唯一"运行期才生成真实实现"的桩——编译期是空壳，设备上框架动态生成继承 ROM `Resources` 子类的占位父类（详见 [server/运行时桩](./stubs/stubs-android-server)）。
 
 ### android.app — 应用进程内部
 
@@ -114,6 +181,103 @@
 | `org.xmlpull.v1.XmlPullParserException` | XML 解析异常（资源解析） |
 | `sun.misc.CompoundEnumeration` | 类加载器枚举合并（隐藏 native 库查找） |
 | `sun.net.www.protocol.jar.Handler` | `jar:` URL 协议处理器 |
+
+## 代表性桩类层次
+
+下面这张 classDiagram 抽取了几个有继承/实现关系的代表性桩，展示桩之间的类型层级（与 AOSP 真实层级一致）：
+
+```mermaid
+classDiagram
+    class IBinder {
+        <<interface>>
+        +transact(code, data, reply, flags)
+        +pingBinder()
+        +queryLocalInterface(descriptor)
+        +linkToDeath(recipient, flags)
+    }
+    class IInterface {
+        <<interface>>
+        +asBinder() IBinder
+    }
+    class Binder {
+        +transact(code, data, reply, flags)
+        +onTransact(code, data, reply, flags)
+        +allowBlocking(binder) IBinder$
+    }
+    class IServiceManager {
+        <<interface>>
+        +getService(name) IBinder
+        +tryUnregisterService(name, service)
+    }
+    class IServiceManager_Stub {
+        <<nested Stub>>
+        +asInterface(obj) IServiceManager$
+    }
+    class ServiceManager {
+        +getService(name) IBinder$
+        +addService(name, service)$
+    }
+    class BaseDexClassLoader {
+        +BaseDexClassLoader(dexFiles, parent)
+        +getLdLibraryPath() String
+    }
+    class ByteBufferDexClassLoader
+    class SystemService {
+        <<abstract>>
+    }
+    class ActivityManagerService_Lifecycle {
+        <<nested Lifecycle>>
+        +getService() ActivityManagerService
+        -findProcessLocked(process, userId, callName)
+    }
+
+    IInterface <|-- IBinder : "IBinder extends IInterface"
+    IBinder <|.. Binder : implements
+    Binder <|-- IServiceManager_Stub : "Stub extends Binder"
+    IServiceManager <|.. IServiceManager_Stub : implements
+    ServiceManager ..> IBinder : "getService returns"
+    BaseDexClassLoader <|-- ByteBufferDexClassLoader : "bridge 子类"
+    SystemService <|-- ActivityManagerService_Lifecycle : "Lifecycle extends SystemService"
+```
+
+> 实际桩目录下有约 100 个类，上图只画有继承/实现链的典型。`IServiceManager.Stub` 与 `ActivityManagerService.Lifecycle` 是嵌套类桩（AOSP 用嵌套类做 Binder Stub / 服务生命周期包装），bridge 的 `ByteBufferDexClassLoader` 直接继承 `BaseDexClassLoader` 桩提供的 hidden 构造——见 [bridge 子模块](./bridge)。
+
+## 桩目录的包结构
+
+桩按 AOSP 原始包名一对一落盘到 [`hiddenapi/stubs/src/main/java/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/src/main/java/) 下，目录树与 AOSP 源码完全同构。下图给出关键包与其代表性桩文件的映射关系，便于按包定位源码：
+
+```mermaid
+graph LR
+    ROOT["stubs/src/main/java"]:::root
+    ROOT --> AAP["android/app/"]:::app
+    ROOT --> ACT["android/content/<br/>(+ .pm · .res)"]:::app
+    ROOT --> AOS["android/os/"]:::sys
+    ROOT --> ASY["android/system/<br/>android/util/"]:::sys
+    ROOT --> AAN["android/annotation/<br/>androidx/annotation/"]:::misc
+    ROOT --> ADD["android/ddm/<br/>android/graphics/<br/>android/view/<br/>android/webkit/<br/>android/permission/"]:::misc
+    ROOT --> CAI["com/android/internal/os/"]:::rt
+    ROOT --> CAS["com/android/server/<br/>(+ .am)"]:::rt
+    ROOT --> DSV["dalvik/system/"]:::rt
+    ROOT --> XDM["xposed/dummy/"]:::xpos
+    ROOT --> SUN["sun/misc/<br/>sun/net/www/protocol/jar/<br/>org/xmlpull/v1/"]:::misc
+
+    AAP -.->|代表| F1["ActivityThread.java<br/>LoadedApk.java"]:::file
+    AOS -.->|代表| F2["ServiceManager.java<br/>Binder.java"]:::file
+    ASY -.->|代表| F3["Os.java<br/>MutableInt.java"]:::file
+    DSV -.->|代表| F4["BaseDexClassLoader.java<br/>VMRuntime.java"]:::file
+    CAI -.->|代表| F5["ZygoteInit.java"]:::file
+    XDM -.->|代表| F6["XResourcesSuperClass.java"]:::file
+
+    classDef root fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef app fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef sys fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef rt fill:#3a2a10,stroke:#e8a838,color:#ffd9b0
+    classDef xpos fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+    classDef misc fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef file fill:#143a4a,stroke:#4fb3d8,color:#bff0f5
+```
+
+> 每个包对应一篇子文档：[`android.app`](./stubs/stubs-android-app) · [`android.content`](./stubs/stubs-android-content) · [`android.os`](./stubs/stubs-android-os) · [server/运行时/杂项](./stubs/stubs-android-server)。`android.system` 与 `android.util` 并入 [`android.os`](./stubs/stubs-android-os) 篇（同属系统层）。
 
 ## 相关
 

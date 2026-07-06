@@ -8,6 +8,131 @@
 - **framework**：镜像 `libandroidfw.so` 与 ART 内部 C++ 结构（`ResXMLParser`、`ResStringPool`、`Res_value` 等），供 native 层直接操作二进制资源。结构布局严格对齐 AOSP `frameworks/base/libs/androidfw`。
 - **common**：编译期常量（库名、版本、调试标志、位宽选择宏）与基于 `fmt` 的轻量日志框架。
 
+## 类协作
+
+[`android_types.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/framework/android_types.h) 镜像 AOSP 资源结构，其中 `ResXMLTree` 继承 `ResXMLParser`，持有 `ResStringPool` 与 `ResXMLTree_node` 数组；`ResStringPool` 用 LSPlant DSL 声明 32/64 位双签名符号 `stringAt_`/`stringAtS_`，经 `setup` 交给 `HookHandler` 解析；[`config.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/common/config.h) 的库名常量供符号解析使用，[`logging.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/common/logging.h) 提供 `LOG*` 宏。`mCurExt` 在 `START_TAG` 时指向 `ResXMLTree_attrExt`，被 `ResourcesHook::rewriteXmlReferencesNative` 直接强转使用。
+
+```mermaid
+classDiagram
+    direction LR
+    class ResXMLParser {
+        +mTree: ResXMLTree&
+        +mEventCode: event_code_t
+        +mCurNode: ResXMLTree_node*
+        +mCurExt: void*
+        <<event_code_t>>
+        BAD_DOCUMENT
+        START_DOCUMENT
+        END_DOCUMENT
+        START_TAG
+        END_TAG
+        TEXT
+    }
+    class ResXMLTree {
+        +mDynamicRefTable: void*
+        +mError: status_t
+        +mHeader: void*
+        +mSize: size_t
+        +mDataEnd: uint8_t*
+        +mStrings: ResStringPool
+        +mResIds: uint32_t*
+        +mNumResIds: size_t
+        +mRootNode: ResXMLTree_node*
+        +mRootExt: void*
+        +mRootCode: event_code_t
+    }
+    class ResStringPool {
+        +mError: status_t
+        +mHeader: void*
+        +mDecodeLock: pthread_mutex_t
+        +mEntries: uint32_t*
+        +mStrings: void*
+        +mCache: char16_t**
+        +mStringPoolSize: uint32_t
+        +stringAt(idx) StringPiece16
+        +setup(handler)$ bool
+    }
+    class ResXMLTree_node {
+        +header: void*
+        +lineNumber: uint32_t
+        +comment: void*
+    }
+    class ResXMLTree_attrExt {
+        +ns: ResStringPool_ref
+        +name: ResStringPool_ref
+        +attributeStart: uint16_t
+        +attributeCount: uint16_t
+        +idIndex: uint16_t
+        +classIndex: uint16_t
+        +styleIndex: uint16_t
+    }
+    class ResXMLTree_attribute {
+        +ns: ResStringPool_ref
+        +name: ResStringPool_ref
+        +rawValue: ResStringPool_ref
+        +typedValue: Res_value
+    }
+    class Res_value {
+        +size: uint16_t
+        +res0: uint8_t
+        +dataType: uint8_t
+        +data: uint32_t
+        <<TYPE_REFERENCE>>
+        <<TYPE_STRING>>
+        <<TYPE_INT_DEC>>
+    }
+    class ResStringPool_ref {
+        +index: uint32_t
+    }
+    class ResourcesHook {
+        <<native jni>>
+        +rewriteXmlReferencesNative(parserPtr, origRes, repRes)
+        +PrepareSymbols()
+    }
+    class ElfSymbolCache {
+        <<native elf>>
+    }
+
+    ResXMLTree --|> ResXMLParser : extends
+    ResXMLTree *-- ResStringPool : mStrings
+    ResXMLTree *-- ResXMLTree_node : mRootNode
+    ResXMLTree *-- ResStringPool_ref : mResIds 映射
+    ResXMLTree_attrExt --|> ResStringPool_ref : ns/name
+    ResXMLTree_attribute *-- Res_value : typedValue
+    ResXMLTree_attribute --|> ResStringPool_ref : ns/name/rawValue
+    Res_value ..> ResStringPool_ref : TYPE_REFERENCE data
+    ResourcesHook ..> ResXMLTree_attrExt : mCurExt 强转
+    ResourcesHook ..> Res_value : 判断 dataType/data
+    ResourcesHook ..> ResStringPool : setup 符号
+    ResourcesHook ..> ElfSymbolCache : 用 config.h 库名
+```
+
+`ResStringPool.stringAt` 的 32/64 位符号 hook 选择流程：
+
+```mermaid
+flowchart TD
+    A["stringAt(idx) const"] --> B["stringAt_ 已解析?<br/>(符号 hook 成功)"]
+    B -- 是 --> C["stringAt_(this, idx, &len)<br/>返回 char16_t* + len"]
+    C --> D["返回 StringPiece16{str, len}"]
+    B -- 否 --> E["stringAtS_ 已解析?"]
+    E -- 是 --> F["stringAtS_(this, idx)<br/>返回 expected~StringPiece16~"]
+    F --> G{"has_value()?"}
+    G -- 是 --> H["返回 StringPiece16{data_,length_}"]
+    G -- 否 --> I["返回 {nullptr, 0}"]
+    E -- 否 --> I
+    J["setup(handler)"] --> K["handler(stringAt_)"]
+    K --> L{"解析成功?"}
+    L -- 是 --> M["return true"]
+    L -- 否 --> N["handler(stringAtS_)"]
+    N --> L
+
+    classDef default fill:#143a4a,color:#fff,stroke:#4fb3d8
+    classDef cond fill:#3a2a10,color:#fff,stroke:#e8a838
+    classDef leaf fill:#1a3a1a,color:#fff,stroke:#5cd980
+    class B,E,G,L cond
+    class D,H,I,M leaf
+```
+
 ## 文件清单
 
 | 文件 | 子包 | 内容 |

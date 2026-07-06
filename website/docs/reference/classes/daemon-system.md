@@ -7,6 +7,107 @@
 
 封装 Daemon 与 Android 系统服务的交互：`SystemBinders.kt` 提供线程安全、带死亡回收的 binder 代理委托；`SystemExtensions.kt` 提供跨 Android 版本兼容的 IPackageManager/IActivityManager/IUserManager 扩展函数与常量；`NotificationManager.kt` 负责状态/模块更新/作用域请求三类通知 UI。
 
+## 类协作
+
+[`SystemService`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/system/SystemBinders.kt) 是属性委托，懒加载缓存系统 binder 并 `linkToDeath`；[`SystemContext`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/system/SystemBinders.kt) 持有 system_server 后注入阶段的全局上下文供扩展函数伪造调用者；[`NotificationManager`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/system/NotificationManager.kt) 经 `SystemService` 委托拿到 `INotificationManager`，并用 [`FakeContext`](./daemon-utils#fakecontext) 构造通知。
+
+```mermaid
+classDiagram
+    direction LR
+    class ReadOnlyProperty {
+        <<kotlin.properties>>
+        +getValue(thisRef, property) T?
+    }
+    class SystemService~T~ {
+        -name: String
+        -asInterface: (IBinder)->T
+        -instance: T?$
+        -deathRecipient: DeathRecipient
+        +getValue(Any?, KProperty) T?
+    }
+    class SystemContext {
+        <<object>>
+        +appThread: IApplicationThread?$
+        +token: IBinder?$
+    }
+    class SystemBinders {
+        <<top-level>>
+        +activityManager$
+        +packageManager$
+        +userManager$
+        +powerManager$
+        +getSystemServiceManager()$
+    }
+    class SystemExtensions {
+        <<top-level fun>>
+        +getPackageInfoCompat()
+        +getPackageInfoWithComponents()
+        +getInstalledPackagesFromAllUsers()
+        +registerReceiverCompat()
+        +broadcastIntentCompat()
+        +getUserName()
+    }
+    class NotificationManager {
+        <<object>>
+        +openManagerAction: UUID
+        +moduleScopeAction: UUID
+        -nm: INotificationManager?
+        +notifyStatusNotification()
+        +notifyModuleUpdated()
+        +requestModuleScope()
+        +cancelNotification()
+        -createChannels()
+        -getNotificationIcon()
+    }
+    class FakeContext {
+        <<utils 包>>
+        +getPackageName() "android"
+    }
+    class IServiceManager {
+        <<Android>>
+    }
+    class IBinder {
+        <<Android>>
+        +linkToDeath()
+    }
+
+    SystemService --|> ReadOnlyProperty : 委托实现
+    SystemBinders ..> SystemService : by 委托
+    NotificationManager ..> SystemService : nm 委托
+    NotificationManager ..> FakeContext : 构造通知/通道
+    SystemExtensions ..> SystemContext : 取 appThread/token
+    SystemBinders ..> IServiceManager : getSystemServiceManager
+    SystemService ..> IBinder : linkToDeath 回收
+```
+
+`SystemService` 的懒加载与死亡回收机制：
+
+```mermaid
+flowchart TD
+    A["属性读取 activityManager 等"] --> B["getValue"]
+    B --> C{"instance != null?"}
+    C -- 是 --> R["返回缓存 instance"]
+    C -- 否 --> D["synchronized(this)"]
+    D --> E{"再次检查 instance?"}
+    E -- 是 --> R
+    E -- 否 --> F["ServiceManager.getService(name)"]
+    F --> G{"binder == null?"}
+    G -- 是 --> N["返回 null"]
+    G -- 否 --> H["binder.linkToDeath(deathRecipient, 0)"]
+    H --> I["asInterface(binder) 包装"]
+    I --> J["instance = 包装结果"]
+    J --> R
+    K["远端服务死亡"] --> L["DeathRecipient 触发"]
+    L --> M["instance = null"]
+    M --> A
+
+    classDef default fill:#143a4a,color:#fff,stroke:#4fb3d8
+    classDef cond fill:#3a2a10,color:#fff,stroke:#e8a838
+    classDef leaf fill:#1a3a1a,color:#fff,stroke:#5cd980
+    class R,N leaf
+    class C,E,G cond
+```
+
 ## 类清单
 
 | 类/文件 | 说明 |
@@ -21,7 +122,7 @@
 
 ## SystemService
 
-`class SystemService<T>(private val name: String, private val asInterface: (IBinder) -> T) : ReadOnlyProperty<Any?, T?>` — 一个**线程安全、懒加载、带死亡回收**的系统服务 binder 代理，作为 Kotlin 属性委托使用。
+[`SystemBinders.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/system/SystemBinders.kt) — `class SystemService<T>(private val name: String, private val asInterface: (IBinder) -> T) : ReadOnlyProperty<Any?, T?>` — 一个**线程安全、懒加载、带死亡回收**的系统服务 binder 代理，作为 Kotlin 属性委托使用。
 
 ### 机制
 
@@ -38,7 +139,7 @@ override fun getValue(thisRef: Any?, property: KProperty<*>): T?
 
 ## SystemContext
 
-`object SystemContext` — 持有从 system_server **后注入阶段**收到的全局状态，供后续伪造 `IActivityManager` 调用（这些调用需要合法的调用者上下文）。
+[`SystemBinders.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/system/SystemBinders.kt) — `object SystemContext` — 持有从 system_server **后注入阶段**收到的全局状态，供后续伪造 `IActivityManager` 调用（这些调用需要合法的调用者上下文）。
 
 ```kotlin
 object SystemContext {
@@ -68,7 +169,7 @@ val powerManager: IPowerManager?      by SystemService(Context.POWER_SERVICE, IP
 
 ## SystemExtensions.kt
 
-跨 Android 版本兼容的扩展函数与常量。`private const val TAG = "VectorSystem"`。
+[`SystemExtensions.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/system/SystemExtensions.kt) — 跨 Android 版本兼容的扩展函数与常量。`private const val TAG = "VectorSystem"`。
 
 ### 常量
 
@@ -119,7 +220,7 @@ fun IUserManager.getUserName(userId): String          // 失败回退为 userId 
 
 ## NotificationManager
 
-`object NotificationManager` — Daemon 的系统通知管理。直接经 `INotificationManager`（通过 `SystemService` 委托获取）以 `opPkg = "android"`（Q+）或 `"com.android.settings"` 发送，绕过普通应用通知权限。
+[`NotificationManager.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/system/NotificationManager.kt) — `object NotificationManager` — Daemon 的系统通知管理。直接经 `INotificationManager`（通过 `SystemService` 委托获取）以 `opPkg = "android"`（Q+）或 `"com.android.settings"` 发送，绕过普通应用通知权限。
 
 ### 通道与 Action
 
@@ -164,6 +265,37 @@ fun requestModuleScope(modulePkg, moduleUserId, scopePkg, callback: IXposedScope
 ```
 
 三个 action 按钮：`approve`（requestCode 4）/ `deny`（5）/ `block`（6）。Intent data 用 `module:` scheme + `modulePkg:moduleUserId` authority + `scopePkg` path + `action` query，并把 `callback.asBinder()` 放进 `Bundle("callback")` 随广播传递。通知 ID 同样为 `modulePkg.hashCode()`，`setAutoCancel(true)`，`BigTextStyle`。
+
+作用域请求通知的构建与用户操作回环时序：
+
+```mermaid
+sequenceDiagram
+    participant MS as ManagerService
+    participant NM as NotificationManager
+    participant FC as FakeContext
+    participant INM as INotificationManager
+    participant Sys as system_server 广播
+    participant VS as VectorService
+    participant CB as IXposedScopeCallback
+
+    MS->>NM: requestModuleScope(pkg,uid,scopePkg,callback)
+    NM->>FC: FakeContext("android")
+    NM->>NM: createUser(userName)
+    loop 三个 action
+        NM->>NM: createActionIntent("approve"/"deny"/"block", 4/5/6)<br/>module: scheme + callback.asBinder()
+    end
+    NM->>NM: Notification.Builder(SCOPE_CHANNEL)<br/>addAction x3 + BigTextStyle + AutoCancel
+    NM->>NM: createChannels() 注册三通道
+    NM->>INM: enqueueNotificationWithTag("android",opPkg,<br/>modulePkg, hashCode(), notif, 0)
+    Note over INM: 以 opPkg="android" 发送<br/>绕过普通应用权限
+    Note over Sys: 用户点击 action 按钮
+    Sys->>VS: 广播 moduleScopeAction + Intent data
+    VS->>VS: 解析 modulePkg/scopePkg/action + callback binder
+    VS->>CB: approve()/deny()/block(scopePkg)
+    alt block
+        VS->>NM: cancelNotification(SCOPE_CHANNEL_ID, modulePkg, uid)
+    end
+```
 
 ```kotlin
 fun cancelNotification(channel: String, modulePkg: String, moduleUserId: Int)

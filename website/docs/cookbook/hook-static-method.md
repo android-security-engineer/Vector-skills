@@ -72,6 +72,28 @@ XposedHelpers.findAndHookMethod(
 
 > 注意 `int` 参数要用 `Int::class.javaPrimitiveType`，用 `Int::class.java`（装箱 `Integer`）会找不到方法。
 
+`System.exit` 是静态方法最经典的反退出场景：`before` 阶段往 `param.throwable` 塞异常，`proceed()` 因此抛出而**跳过原方法**，进程不退出。下图展示这次"拦截"在 hook 链里的走向：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as 应用代码
+    participant Chain as Hook 链
+    participant Exit as System.exit Hooker
+    participant Sys as System.exit 原方法
+
+    App->>Chain: System.exit(0)
+    Chain->>Exit: before(param)
+    Exit->>Exit: param.throwable =<br/>SecurityException("exit blocked")
+    Note over Exit: 抛 throwable → 跳过 proceed
+    Chain->>Chain: 检测到 throwable<br/>不调 proceed / 不执行原方法
+    Chain-->>App: 抛出 SecurityException
+    Note over App: 应用捕获或冒泡<br/>进程未退出
+    Note over Sys: 原方法从未执行<br/>Runtime.exit 未触发
+```
+
+> 静态方法 Hook 没有 `this`，`param.thisObject` 为 `null`，参数表从下标 0 起就是真实参数（`param.args[0]` 即 `exit code`）。反退出用 `throwable` 而非 `setResult`——后者会让原方法"正常返回"，但 `System.exit` 是 `void` 且本身不返回，只有抛异常才能阻止其副作用。
+
 ## 反优化要点
 
 静态方法最容易被 ART 内联。Vector 的 `VectorDeopter` 会在 Hook 前对目标方法做 deoptimize，确保调用走解释器入口、Hook 生效。你通常无需手动干预；若发现 Hook 偶发失效，检查目标是否被标记为 quickened/fast-path。详见 [架构 · native · 反优化](../architecture/native)。

@@ -20,6 +20,34 @@ public class ZygoteInit {}
 
 桩本身是空壳，但**类名**是关键。Vector 在 Zygote 阶段挂 `com.android.internal.os.ZygoteInit` 的关键方法（如资源预加载、`forkSystemServer` 附近），在所有应用进程 fork 出来之前完成早期注入——这是 `IXposedHookZygoteInit` 的底层落点。桩让框架代码能引用这个类型。
 
+`HandleSystemServerProcessHooker` 拦截 `ZygoteInit.handleSystemServerProcess`，在 system_server 真正启动前对系统服务路径做反优化，并 hook `SystemServer.startBootstrapServices` 把模块加载派发到 legacy/modern 两套生命周期。下图展示桩类名如何串联起这条早期注入链：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Zg as Zygote 进程
+    participant ZI as ZygoteInit 桩<br/>(com.android.internal.os)
+    participant HSP as HandleSystemServerProcessHooker
+    participant SS as SystemServer 桩<br/>(com.android.server)
+    participant SBS as StartBootstrapServicesHooker
+    participant MM as 模块入口<br/>(legacy + modern)
+
+    Zg->>ZI: handleSystemServerProcess(...)
+    Note over ZI: 桩类名被框架反射定位<br/>VectorHookBuilder.install
+    Zg->>HSP: intercept(chain)
+    HSP->>HSP: chain.proceed() 原逻辑
+    HSP->>HSP: 取 contextClassLoader<br/>判定 system_server
+    HSP->>HSP: deoptSystemServerMethods(cl)
+    HSP->>SS: 定位 startBootstrapServices
+    SS->>SBS: VectorHookBuilder.intercept
+    SBS->>MM: chain.proceed() 触发派发
+    SBS->>MM: dispatchSystemServerLoaded(cl)
+    Note over MM: onSystemServerLoaded /<br/>onPackageLoaded(packageName=android)
+    MM-->>Zg: system_server 初始化完成
+```
+
+> 这条链上 `ZygoteInit` 与 `SystemServer` 桩只贡献"类名 + 方法签名"，让框架的 `Class.forName("com.android.internal.os.ZygoteInit")` 能在编译期通过；运行期 `handleSystemServerProcess` 的真实实现由系统镜像提供，hooker 在其 `after` 阶段插入注入逻辑。详见 [`SystemServerHookers.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hookers/SystemServerHookers.kt) 与 [Zygote 注入配方](../../../cookbook/hook-zygote)。
+
 ### BinderInternal
 
 ```java
@@ -86,6 +114,35 @@ ART 运行时单例。`vmInstructionSet()` 返回 `arm64`/`x86_64` 等，Vector 
 > This implementation isn't included in the .dex file. Instead, it's created on the device. Usually, it will extend `Resources`, but some ROMs use their own `Resources` subclass. In that case, `XResourcesSuperClass` will extend the ROM's subclass in an attempt to increase compatibility.
 
 即桩的 .class 不会进最终 dex——运行期框架在设备上动态生成真实父类（默认继承 `Resources`，ROM 改了就继承 ROM 的子类），让 `XResources` 既保有 hook 能力又不破坏类型层级。`XTypedArraySuperClass` 同理对应 `TypedArray`。
+
+下图展示 `XResourcesSuperClass` 桩在编译期与运行期的双形态：编译期是空壳占位父类，运行期框架按 ROM 实际的 `Resources` 子类动态生成真实父类，把桩"替换"为有实现的真实类：
+
+```mermaid
+graph TD
+    subgraph CT["编译期(stubs.jar / compileOnly)"]
+        XS["XResourcesSuperClass 桩<br/>(空壳, extends Resources 占位)"]:::stub
+        XR["XResources extends<br/>XResourcesSuperClass"]:::code
+    end
+    subgraph RT["运行期(设备上动态生成)"]
+        DET{"ROM 是否改了 Resources?"}
+        GEN1["动态生成: extends Resources"]:::gen
+        GEN2["动态生成: extends ROMResourcesSub"]:::gen
+        RXR["XResources 真实父类<br/>(带 hook 实现)"]:::real
+    end
+    XS -.编译期占位.-> XR
+    XS -.运行期被动态类替换.-> DET
+    DET -->|否(原生 AOSP)| GEN1
+    DET -->|是(MIUI/EMUI 等)| GEN2
+    GEN1 --> RXR
+    GEN2 --> RXR
+    RXR -.XResources 实际继承.-> XR
+    classDef stub fill:#3a2a10,stroke:#e8a838,color:#ffd9b0
+    classDef code fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef gen fill:#143a4a,stroke:#4fb3d8,color:#bff0f5
+    classDef real fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+```
+
+> 这是 stubs 里**唯一不靠"系统镜像替换"的桩**：其他桩运行期由 `boot classpath` 的真实类接管，而 `xposed.dummy.*` 运行期由框架**自己生成**的真实类接管（继承 ROM 的 `Resources` 子类以提升兼容性）。桩在此只承诺"类型层级里有这个父类"，真实实现交给运行期动态字节码。
 
 ## 其他杂项桩
 

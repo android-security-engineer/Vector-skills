@@ -7,6 +7,119 @@
 
 实现经典 Xposed 的**资源替换体系**：`XResources` 是 `Resources` 的子类，覆写所有资源读取方法以支持运行时替换；`XModuleResources` 让模块加载自身 APK 资源；`XResForwarder` 把请求转发到其他 `Resources` 实例。`AndroidAppHelper` 提供当前进程的应用信息工具集。
 
+## 类协作
+
+[`XResources`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/content/res/XResources.java) 是替换体系核心，继承 native 侧构建的伪超类 `XResourcesSuperClass`；[`XModuleResources`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/content/res/XModuleResources.java) 继承标准 `Resources`，经 `createInstance` 把模块 APK 路径加入 `AssetManager`；[`XResForwarder`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/content/res/XResForwarder.java) 是替换值的转发载体，通常由 `XModuleResources.fwd(id)` 构造后传给 `XResources.setReplacement`；[`AndroidAppHelper`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/app/AndroidAppHelper.java) 静态工具集，`addActiveResource` 把 `XModuleResources` 注册进 `ActivityThread` 的 `mResourcesManager`。
+
+```mermaid
+classDiagram
+    direction LR
+    class Resources {
+        <<android>>
+    }
+    class XResourcesSuperClass {
+        <<native 构建>>
+    }
+    class XResources {
+        -resDir: String
+        -mReplacementsCache: byte[]
+        +setReplacement(id, value)
+        +setReplacement(pkg,type,name,value)
+        +setSystemWideReplacement(id, value)$
+        +hookLayout(id, callback) Unhook
+        +hookSystemWideLayout(id, callback)$
+        +getFakeResId(resName)$
+        +addResource(res, id)
+        +init(latestResKey)$
+    }
+    class XModuleResources {
+        -XModuleResources(assets,metrics,config)
+        +createInstance(path, origRes)$
+        +fwd(id) XResForwarder
+    }
+    class XResForwarder {
+        -res: Resources
+        -id: int
+        +getResources() Resources
+        +getId() int
+    }
+    class AndroidAppHelper {
+        <<final, static>>
+        +currentProcessName()$
+        +currentApplicationInfo()$
+        +currentPackageName()$
+        +currentApplication()$
+        +addActiveResource(resDir,res)$
+    }
+    class XResources_ResourceNames {
+        +id: int
+        +pkg: String
+        +name: String
+        +type: String
+        +fullName: String
+    }
+    class XResources_DrawableLoader {
+        <<abstract>>
+        +newDrawable(XResources,id)*
+        +newDrawableForDensity(XResources,id,density)
+    }
+    class XResources_DimensionReplacement {
+        -value: float
+        -unit: int
+        +getDimension(metrics)
+        +getDimensionPixelOffset(metrics)
+        +getDimensionPixelSize(metrics)
+    }
+    class XC_LayoutInflated {
+        <<callbacks 包>>
+    }
+    class ActivityThread {
+        <<android.app>>
+        +mResourcesManager
+    }
+
+    XResources --|> XResourcesSuperClass : extends
+    XModuleResources --|> Resources : extends
+    XModuleResources ..> XResForwarder : fwd(id) 构造
+    XResForwarder ..> XResources : 作为 setReplacement 替换值
+    XModuleResources ..> AndroidAppHelper : createInstance 内注册
+    AndroidAppHelper ..> ActivityThread : 注入 mResourcesManager
+    XResources ..> XC_LayoutInflated : hookLayout 注册
+    XResources *-- XResources_ResourceNames : inner
+    XResources *-- XResources_DrawableLoader : inner
+    XResources *-- XResources_DimensionReplacement : inner
+```
+
+`XResources.setReplacement` 的替换缓存查找流程：
+
+```mermaid
+flowchart TD
+    A["setReplacement(id, replacement)"] --> B{"id == 0?"}
+    B -- 是 --> X["拒绝"]
+    B -- 否 --> C{"resDir == null<br/>(框架级)?"}
+    C -- 是 --> D["先触发 XposedInit.hookResources()"]
+    C -- 否 --> E
+    D --> E{"id >= 0x7f000000<br/>(应用级)设框架级?"}
+    E -- 是 --> X
+    E -- 否 --> F{"replacement 是 Drawable?"}
+    F -- 是(已废弃) --> G["拒绝, 提示用 DrawableLoader"]
+    F -- 否 --> H["按类型存入 sReplacements<br/>SparseArray~HashMap~resDir,Object~~"]
+    H --> I["更新位图缓存<br/>sSystemReplacementsCache / mReplacementsCache"]
+    I --> J["后续资源读取命中替换"]
+    J --> K{"位图查 id<br/>可能存在替换?"}
+    K -- 假阳性/真阳性 --> L["查 sReplacements HashMap"]
+    K -- 不在位图 --> M["走原生 Resources 读取"]
+    L --> N{"找到替换?"}
+    N -- 是 --> O["返回替换值"]
+    N -- 否 --> M
+
+    classDef default fill:#143a4a,color:#fff,stroke:#4fb3d8
+    classDef cond fill:#3a2a10,color:#fff,stroke:#e8a838
+    classDef leaf fill:#1a3a1a,color:#fff,stroke:#5cd980
+    class B,C,E,F,K,N cond
+    class X,O,M leaf
+```
+
 ## 类清单
 
 | 类 | 说明 |
@@ -20,7 +133,7 @@
 
 ## XResources
 
-`public class XResources extends XResourcesSuperClass` — Xposed 用此类替换标准 `Resources`，覆写个别资源读取方法并增加替换能力。继承自 native 侧构建的伪超类 `XResourcesSuperClass`。
+[`XResources.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/content/res/XResources.java) — `public class XResources extends XResourcesSuperClass` — Xposed 用此类替换标准 `Resources`，覆写个别资源读取方法并增加替换能力。继承自 native 侧构建的伪超类 `XResourcesSuperClass`。
 
 ### 替换缓存机制
 
@@ -108,6 +221,36 @@ public static void unhookLayout(String resDir, int id, XC_LayoutInflated callbac
 
 布局回调存于 `sLayoutCallbacks`（`SparseArray<HashMap<resDir, CopyOnWriteSortedSet<XC_LayoutInflated>>>`）。`getLayout` 返回的 `XmlResourceParser` 关联 `XMLInstanceDetails`，在 `LayoutInflater.inflate` 后触发 `XCallback.callAll(liparam)`。`<include>` 通过 `parseInclude` hook 与 `sIncludedLayouts` ThreadLocal 栈协作处理。
 
+布局 Hook 注册与填充触发时序：
+
+```mermaid
+sequenceDiagram
+    participant Mod as 模块代码
+    participant XR as XResources
+    participant SC as sLayoutCallbacks<br/>(SparseArray~HashMap~)
+    participant IL as LayoutInflater
+    participant XCall as XCallback.callAll
+    participant CB as XC_LayoutInflated 回调
+
+    Mod->>XR: hookLayout(id, callback)
+    XR->>XR: 按 id 取/建 HashMap~resDir,CopyOnWriteSortedSet~
+    XR->>SC: set.add(callback) 按 compareTo 排序
+    XR-->>Mod: new Unhook(resDir, id)
+    Note over XR: getLayout 返回的 parser 关联 XMLInstanceDetails
+    IL->>XR: getLayout(resId) → XmlResourceParser
+    IL->>IL: inflate(parser, root)
+    IL->>XR: parser 填充完毕<br/>触发 XMLInstanceDetails 回调
+    XR->>XR: 构造 LayoutInflatedParam<br/>(view/resNames/variant/res)
+    XR->>XCall: callAll(liparam)
+    Note over XCall: CopyOnWriteSortedSet 快照已排序
+    XCall->>CB: call(param) 按 priority 降序
+    CB->>CB: handleLayoutInflated(liparam)
+    opt include 子布局
+        IL->>XR: parseInclude hook<br/>压入 sIncludedLayouts ThreadLocal
+        Note over XR: 子布局填充后弹栈
+    end
+```
+
 ### 初始化
 
 ```java
@@ -162,7 +305,7 @@ public int getDimensionPixelSize(DisplayMetrics metrics)
 
 ## XModuleResources
 
-`public class XModuleResources extends Resources` — 从指定路径（通常是模块自身 APK）加载资源的 `Resources`。
+[`XModuleResources.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/content/res/XModuleResources.java) — `public class XModuleResources extends Resources` — 从指定路径（通常是模块自身 APK）加载资源的 `Resources`。
 
 ```java
 public static XModuleResources createInstance(String path, XResources origRes)
@@ -177,7 +320,7 @@ public XResForwarder fwd(int id)
 
 ## XResForwarder
 
-`public class XResForwarder` — 转发器，把资源请求转发到另一 `Resources` 实例（可能有不同 ID）。
+[`XResForwarder.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/content/res/XResForwarder.java) — `public class XResForwarder` — 转发器，把资源请求转发到另一 `Resources` 实例（可能有不同 ID）。
 
 ```java
 public XResForwarder(Resources res, int id)
@@ -191,7 +334,7 @@ public int getId()                // 目标资源 ID
 
 ## AndroidAppHelper
 
-`public final class AndroidAppHelper` — 当前应用/进程信息的**静态工具集**。因历史原因位于 `android.app` 包，无法移动以免破坏兼容。
+[`AndroidAppHelper.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/app/AndroidAppHelper.java) — `public final class AndroidAppHelper` — 当前应用/进程信息的**静态工具集**。因历史原因位于 `android.app` 包，无法移动以免破坏兼容。
 
 ### 进程与应用信息
 

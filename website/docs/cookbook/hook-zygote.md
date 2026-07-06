@@ -69,6 +69,35 @@ override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
 
 要在 `system_server` 生效，模块作用域必须勾选 `system_server`（详见 [作用域配方](./scope#system_server-是特殊情况)）。
 
+system_server 走的是 Zygote fork 的特殊路径，不走普通应用 `LoadedApk` 加载链。框架用 `HandleSystemServerProcessHooker` 拦截 `ZygoteInit.handleSystemServerProcess`，在 `after` 阶段取 `contextClassLoader` 触发 system_server 初始化，再 hook `SystemServer.startBootstrapServices` 把"system_server 已就绪"事件派发给 legacy/modern 两套模块入口。下图把三个时机（`initZygote` / `onSystemServerLoaded` / `handleLoadPackage`）的派发路径画清：
+
+```mermaid
+graph TD
+    ZG["Zygote 进程"]:::zygote
+    ZG --> IZ["initZygote()<br/>IXposedHookZygoteInit"]:::step
+    IZ --> GBL["全局 Hook 就位<br/>对所有 fork 子进程生效"]:::ok
+    ZG -->|"fork system_server"| SS["system_server 进程"]:::ss
+    SS --> HSP["handleSystemServerProcess<br/>被 Hooker 拦截"]:::step
+    HSP --> DEOPT["deoptSystemServerMethods"]:::step
+    HSP --> SBS["hook startBootstrapServices"]:::step
+    SBS --> OSS["onSystemServerLoaded(cl)<br/>packageName=android"]:::ok
+    OSS --> LEG["legacy: handleLoadPackage<br/>(android)"]:::legacy
+    OSS --> MOD["modern: onSystemServerStarting"]:::modern
+    ZG -->|"fork 应用"| APP["应用进程"]:::app
+    APP --> LAP["LoadedApk 加载链"]:::step
+    LAP --> HLP["handleLoadPackage()<br/>按作用域触发"]:::out
+    classDef zygote fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef step fill:#3a2a10,stroke:#e8a838,color:#ffd9b0
+    classDef ss fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef app fill:#143a4a,stroke:#4fb3d8,color:#bff0f5
+    classDef ok fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+    classDef out fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+    classDef legacy fill:#3a2a10,stroke:#e8a838,color:#ffd9b0
+    classDef modern fill:#143a4a,stroke:#4fb3d8,color:#bff0f5
+```
+
+> `onSystemServerLoaded` 与 `handleLoadPackage(packageName=android)` 是同一事件的两个 API 面：legacy 走 `LegacyDelegateImpl.onSystemServerLoaded` 构造 `LoadPackageParam(packageName=android)` 再 `XC_LoadPackage.callAll`，modern 走 `VectorLifecycleManager.dispatchSystemServerStarting`。两者都在 `startBootstrapServices` 的 `after` 阶段被 `StartBootstrapServicesHooker` 派发——源码见 [`SystemServerHookers.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hookers/SystemServerHookers.kt)。
+
 ## 注意事项
 
 | 事项 | 说明 |

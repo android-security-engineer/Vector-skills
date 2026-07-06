@@ -83,6 +83,40 @@ class MyHooker : Hooker {
 
 链中某模块抛异常不会直接搞崩宿主——经典 API 有 `LegacyApiSupport` 兜底，现代 API 有 `ExceptionMode.PROTECTIVE`：`proceed()` 之前抛异常跳过该拦截器，之后抛异常则恢复下游缓存结果。但别依赖兜底，自己处理异常。
 
+`VectorChain` 按异常发生在 `proceed()` 之前还是之后做不同恢复。下图展示一次链式执行里某 hooker 在 `proceed()` 前后分别抛异常时的两条恢复路径：
+
+```mermaid
+flowchart TD
+    START["Hook 链开始执行"]:::in
+    START --> B1["模块A before"]:::step
+    B1 --> P1{"A 调 proceed()?"}
+    P1 -->|是| B2["模块B before"]:::step
+    P1 -->|"否, A 在 before 抛异常"| CRASH1["异常在 proceed 前"]:::trap
+    CRASH1 --> EM1{"ExceptionMode?"}
+    EM1 -->|PROTECTIVE| SKIP["跳过 A<br/>链继续执行 B"]:::ok
+    EM1 -->|PASSTHROUGH| RE1["向上抛出"]:::trap
+    SKIP --> B2
+    B2 --> ORIG["原方法执行"]:::orig
+    ORIG --> A2["模块B after"]:::step
+    A2 --> A2B["模块A after"]:::step
+    A2B --> CRASH2{"A 在 after 抛异常?"}
+    CRASH2 -->|"是, proceed 已调"| CRASH2Y["异常在 proceed 后"]:::trap
+    CRASH2 -->|否| END["返回结果给调用方"]:::out
+    CRASH2Y --> EM2{"ExceptionMode?"}
+    EM2 -->|PROTECTIVE| RESTORE["恢复下游缓存结果<br/>(downstreamResult)"]:::ok
+    EM2 -->|PASSTHROUGH| RE2["向上抛出"]:::trap
+    RESTORE --> END
+
+    classDef in fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef step fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef orig fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+    classDef ok fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+    classDef out fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+    classDef trap fill:#3a2a10,stroke:#e8a838,color:#ffd9b0
+```
+
+> `proceed()` 前抛异常 = 模块自己还没把控制权交下去，可安全跳过该 hooker 让链继续；`proceed()` 后抛异常 = 下游已跑过，链用 `downstreamResult` / `downstreamThrowable` 缓存恢复下游状态，避免重复执行或丢失原结果。源码见 [`VectorChain.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorChain.kt) 的 `handleInterceptorException`。PASSTHROUGH 模式不兜底——适合你确认异常应当冒泡的场景。
+
 ## 设计建议
 
 设计一个会被其他模块共存的 Hook 时，把自己想成链上的一个环节：尽量只读不改、要改就改最小范围、要替换就显式标高优先级并写文档说明。这样多个模块叠加时能各取所需，而不是互相覆盖。社区约定：替换型 Hook 在模块说明里声明"会替换 X 方法"，方便其他模块作者知道需要协调优先级。

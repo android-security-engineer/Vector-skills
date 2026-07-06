@@ -41,6 +41,38 @@ unhookRef = XposedBridge.hookMethod(initMethod, object : XC_MethodHook() {
 
 > 闭包捕获 `unhookRef` 需用 `var` + 可空引用，Hook 回调里再赋值；lambda 捕获的是 final 引用会编译失败。
 
+一次性自摘除的执行流：回调命中后先跑业务逻辑，再调 `unhookRef?.unhook()` 摘除自己。`unhook()` 调用在 `after` 阶段返回之后才真正生效——同一次调用不会再触发该回调，但**下一次**调用起摘除生效：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Caller as 调用方
+    participant Chain as Hook 链
+    participant Init as 一次性 Hook<br/>(initMethod)
+    participant Unhook as Unhook 句柄
+    participant Orig as 原方法
+
+    Caller->>Chain: 第 1 次调用 initMethod
+    Chain->>Init: before
+    Init->>Chain: doOnce(args)
+    Chain->>Orig: proceed() 原方法
+    Orig-->>Chain: 原结果
+    Chain->>Init: after
+    Init->>Init: 业务逻辑执行
+    Init->>Unhook: unhookRef?.unhook()
+    Note over Unhook: 标记摘除该回调实例<br/>(当前链路已过 after, 无影响)
+    Unhook-->>Init: ok
+    Init-->>Chain: 返回
+    Chain-->>Caller: 结果
+    Note over Caller,Chain: 第 2 次及以后
+    Caller->>Chain: 再次调用 initMethod
+    Chain->>Chain: 该回调已被摘除, 跳过<br/>直达原方法
+    Chain->>Orig: proceed()
+    Orig-->>Caller: 原结果(无 Hook)
+```
+
+> 若需在命中**当次**就停止后续 before/after，应改用 `XC_MethodReplacement` 或在 `before` 里设标志位提前 `return`——`unhook()` 影响的是后续调用，不是当前链路。源码层面摘除走 native `HookBridge` 移除该 ArtMethod 上的回调节点，详见 [legacy · IXUnhook](../reference/classes/legacy-api)。
+
 ## 作用域与生命周期
 
 ```mermaid

@@ -26,6 +26,30 @@ val clazz = XposedHelpers.findClass("com.target.app.Foo\$Bar", lpparam.classLoad
 | 匿名类 | `new Runnable(){...}` | `com.target.app.Foo$1` |
 | Lambda | `() -> {}` | `com.target.app.Foo$$Lambda$0`（可能被去糖） |
 
+定位内部类时，源码里的嵌套关系要先转成 JVM 二进制名（`$` 分隔），再判断是否非静态内部类（构造隐含外部引用）。下图把"源码形态 → 二进制名 → Hook 构造签名"的转换链画清楚：
+
+```mermaid
+graph TD
+    SRC["源码嵌套类"]:::in
+    SRC --> C1{"静态 or 非静态?"}
+    C1 -->|静态内部类| S1["二进制名 Outer$Inner<br/>构造签名: (参数...)"]:::ok
+    C1 -->|非静态内部类| S2["二进制名 Outer$Inner<br/>构造签名: (Outer, 参数...)"]:::trap
+    C1 -->|匿名类| S3["二进制名 Outer$1<br/>无稳定名, 按接口反查"]:::trap
+    C1 -->|Lambda| S4["二进制名 Outer$$Lambda$0<br/>可能被去糖, 改 hook SAM"]:::trap
+    S1 --> HOOK["findAndHookConstructor / findAndHookMethod"]
+    S2 --> HOOK
+    S3 --> IFACE["按 isAssignableFrom 反查"]
+    S4 --> IFACE
+    IFACE --> HOOK
+    HOOK --> ESC["Kotlin 字符串里 $ 转义为 \$"]:::check
+    classDef in fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef ok fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+    classDef trap fill:#3a2a10,stroke:#e8a838,color:#ffd9b0
+    classDef check fill:#143a4a,stroke:#4fb3d8,color:#bff0f5
+```
+
+> 关键卡点：非静态内部类构造**首参隐含外部类实例**（`param.args[0]` 是 `Outer`），漏写就 `NoSuchMethodError`；匿名类编号随源码漂移，硬编码 `Outer$1` 下次编译即失效，必须按实现的接口/父类反查。
+
 ## 非静态内部类的隐含字段
 
 非静态内部类构造函数**首参数隐含外部类引用**，Hook 构造时要把外部类类型放进参数表：

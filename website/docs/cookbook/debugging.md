@@ -45,6 +45,34 @@ Vector 的 Hook 稳定性靠三层（见 [ART Hook 原理](../guide/art-hook)）
 
 任何一层出问题都可能导致 Hook 失效。日志里分别有对应记录。
 
+三层保险在方法调用的不同时机介入：dex2oat 劫持作用于**编译期**（阻止目标方法被 JIT/AOT 内联），`VectorDeopter` 作用于 **Hook 注册前**（把已被编译的目标方法回退到解释器入口），LSPlant 作用于**运行期调用时**（改写 ArtMethod 的 `entry_point` 把调用劫持到 hook 链）。下图展示一次方法调用如何依次穿过三层：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as 应用调用方
+    participant ART as ART 运行时
+    participant D2O as dex2oat 劫持层
+    participant DPT as VectorDeopter
+    participant LSP as LSPlant / entry_point
+    participant Chain as Hook 链(VectorChain)
+    participant Orig as 原方法实现
+
+    Note over D2O: 阶段零 编译期：dex2oat 被包装器劫持<br/>目标方法不进入 AOT 内联
+    Note over DPT: 阶段一 Hook 注册前<br/>deoptimizeMethod 把目标回退到解释器
+    DPT->>ART: 标记目标方法为 kNotCompiled<br/>entry 走解释器
+    Note over LSP: 阶段二 运行期调用
+    App->>ART: 调用 target.method()
+    ART->>LSP: 取 ArtMethod.entry_point
+    LSP->>Chain: 已被改写, 跳到 hook 链
+    Chain->>Chain: before → proceed → after
+    Chain->>Orig: 走解释器执行原方法
+    Orig-->>Chain: 原返回值
+    Chain-->>App: (可能被 after 改写的)结果
+```
+
+> 三层任意一层失效都会让 Hook "看起来没装"：dex2oat 未劫持则目标可能被内联（`before` 不触发）；Deopter 未跑则已被 quickened 的方法仍走机器码入口绕过 `entry_point`；LSPlant 未改写则调用直达原方法。排查时按日志里 `dex2oat wrapper` → `deoptimizeMethod` → hook 注册 三条记录依次核对。详见 [`VectorDeopter.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorDeopter.kt) 与 [架构 · native · 反优化](../architecture/native)。
+
 ## 模块崩溃
 
 PROTECTIVE 模式下，模块异常不会传播到宿主。但依赖框架兜底是坏习惯——你的 Hook 逻辑应自己 try-catch：

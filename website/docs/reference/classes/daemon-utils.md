@@ -7,6 +7,91 @@
 
 为 Daemon 提供基础设施工具：`FakeContext` 在无真实 Application 上下文时伪造一个足以初始化数据库、构造 Intent 与通知的 Context；`InstallerVerifier` 校验管理器 APK 签名；`ObfuscationManager` 声明 DEX 混淆的 native 桥；`Workarounds` 收纳各厂商/各 Android 版本的兼容补丁。
 
+## 类协作
+
+四个工具各管一摊：[`FakeContext`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/FakeContext.kt) 被通知构建与数据库初始化共享，其 `nullProvider` 标志由 [`Workarounds`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/Workarounds.kt) 翻转；[`InstallerVerifier`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/InstallerVerifier.kt) 在交付/登记管理器前被 `ApplicationService`/`ConfigCache` 调用；[`ObfuscationManager`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/ObfuscationManager.kt) 是 native 桥声明，被 `FileSystem`/`ApplicationService` 调用。
+
+```mermaid
+classDiagram
+    direction LR
+    class ContextWrapper {
+        <<android>>
+    }
+    class FakeContext {
+        -fakePackageName: String
+        +nullProvider: boolean$
+        -systemAppInfo: ApplicationInfo?$
+        -fakeTheme: Theme?$
+        +getPackageName() "android"
+        +getOpPackageName() "android"
+        +getUserId() 0
+        +getApplicationInfo() ApplicationInfo
+        +getContentResolver() ContentResolver?
+        +getResources() Resources
+        +getDatabasePath(name) File
+        +openOrCreateDatabase(...) SQLiteDatabase
+    }
+    class InstallerVerifier {
+        <<object>>
+        +verifyInstallerSignature(path)
+    }
+    class ApkVerifier {
+        <<com.android.apksig>>
+        +verify() Result
+    }
+    class SignInfo {
+        <<daemon>>
+        +CERTIFICATE: byte[]$
+    }
+    class ObfuscationManager {
+        <<object>>
+        +obfuscateDex(SharedMemory)$ SharedMemory
+        +getSignatures()$ Map
+    }
+    class Workarounds {
+        <<top-level fun>>
+        +getRealUsers() List
+        +applyNotificationWorkaround()
+        +performDexOptMode(pkg) boolean
+        +applyXspaceWorkaround(conn)
+        +applySqliteHelperWorkaround()
+    }
+    class FakeContextCompanion {
+        <<companion>>
+        +nullProvider$
+    }
+
+    FakeContext --|> ContextWrapper : extends
+    InstallerVerifier ..> ApkVerifier : 校验
+    InstallerVerifier ..> SignInfo : 比对证书
+    Workarounds ..> FakeContextCompanion : 翻转 nullProvider
+    FakeContext *-- FakeContextCompanion : companion
+    ObfuscationManager ..> Workarounds : 无(独立)
+```
+
+`InstallerVerifier.verifyInstallerSignature` 的签名校验流程：
+
+```mermaid
+flowchart TD
+    A["verifyInstallerSignature(path)"] --> B["ApkVerifier.Builder(File(path))<br/>.setMinCheckedPlatformVersion(27)<br/>.build()"]
+    B --> C["verify()"]
+    C --> D{"isVerified?"}
+    D -- 否 --> E["throw IOException<br/>'APK signature not verified'"]
+    D -- 是 --> F["取 signerCertificates[0]"]
+    F --> G{"encoded == SignInfo.CERTIFICATE?"}
+    G -- 否 --> H["throw IOException<br/>'APK signature mismatch: $dname'"]
+    G -- 是 --> I["校验通过"]
+    J["调用方"] --> A
+    K["ApplicationService<br/>.requestInjectedManagerBinder"] --> A
+    L["ConfigCache<br/>.updateManager"] --> A
+
+    classDef default fill:#143a4a,color:#fff,stroke:#4fb3d8
+    classDef cond fill:#3a2a10,color:#fff,stroke:#e8a838
+    classDef leaf fill:#1a3a1a,color:#fff,stroke:#5cd980
+    classD,G cond
+    class E,H,I leaf
+```
+
 ## 类清单
 
 | 类/文件 | 说明 |
@@ -20,7 +105,7 @@
 
 ## FakeContext
 
-`class FakeContext(private val fakePackageName: String = "android") : ContextWrapper(null)` — Daemon 没有 `Application`，此桩 Context 让数据库初始化、Intent 构造、通知构建等需要 `Context` 的 API 正常工作。
+[`FakeContext.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/FakeContext.kt) — `class FakeContext(private val fakePackageName: String = "android") : ContextWrapper(null)` — Daemon 没有 `Application`，此桩 Context 让数据库初始化、Intent 构造、通知构建等需要 `Context` 的 API 正常工作。
 
 ### companion 状态
 
@@ -56,7 +141,7 @@ override fun openOrCreateDatabase(...)                       // 委托 SQLiteDat
 
 ## InstallerVerifier
 
-`object InstallerVerifier` — 校验管理器 APK 签名，防止冒充。基于 `com.android.apksig` 的 `ApkVerifier`。
+[`InstallerVerifier.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/InstallerVerifier.kt) — `object InstallerVerifier` — 校验管理器 APK 签名，防止冒充。基于 `com.android.apksig` 的 `ApkVerifier`。
 
 ```kotlin
 @Throws(IOException::class)
@@ -71,7 +156,7 @@ fun verifyInstallerSignature(path: String)
 
 ## ObfuscationManager
 
-`object ObfuscationManager` — DEX 混淆的 native 桥声明，实现见 [daemon · jni · obfuscation](./daemon-jni#obfuscationcpp)。
+[`ObfuscationManager.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/ObfuscationManager.kt) — `object ObfuscationManager` — DEX 混淆的 native 桥声明，实现见 [daemon · jni · obfuscation](./daemon-jni#obfuscationcpp)。
 
 ```kotlin
 @JvmStatic external fun obfuscateDex(memory: SharedMemory): SharedMemory
@@ -87,7 +172,7 @@ fun verifyInstallerSignature(path: String)
 
 ## Workarounds.kt
 
-各厂商与 Android 版本的兼容补丁。`private const val TAG = "VectorWorkarounds"`；`isLenovo` / `isXiaomi` 按 `Build.MANUFACTURER` 判定。
+[`Workarounds.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/Workarounds.kt) — 各厂商与 Android 版本的兼容补丁。`private const val TAG = "VectorWorkarounds"`；`isLenovo` / `isXiaomi` 按 `Build.MANUFACTURER` 判定。
 
 ### getRealUsers
 
@@ -107,6 +192,27 @@ fun applyNotificationWorkaround()
 - 构造一条 `notification_workaround` 通道的空通知预热 Notification.Builder；若抛 `AbstractMethodError` 则翻转 `FakeContext.nullProvider` 重试，其余异常记日志
 
 由 `VectorDaemon.main` 在等待系统服务后调用。
+
+通知 workaround 的翻转重试流程：
+
+```mermaid
+flowchart TD
+    A["applyNotificationWorkaround()"] --> B{"SDK_INT == 36?"}
+    B -- 是 --> C["反射 FeatureFlagsImpl<br/>systemui_is_cached = true"]
+    B -- 否 --> D
+    C --> D["Notification.Builder(FakeContext,<br/>'notification_workaround').build()"]
+    D --> E{"结果?"}
+    E -- 成功 --> F["预热完成"]
+    E -- AbstractMethodError --> G["翻转 FakeContext.nullProvider<br/>下次 getContentResolver 返回 null"]
+    E -- 其他异常 --> H["Log.e 记录"]
+    G --> I["下次通知构建绕过崩溃路径"]
+
+    classDef default fill:#143a4a,color:#fff,stroke:#4fb3d8
+    classDef cond fill:#3a2a10,color:#fff,stroke:#e8a838
+    classDef leaf fill:#1a3a1a,color:#fff,stroke:#5cd980
+    class B,E cond
+    class F,I leaf
+```
 
 ### performDexOptMode
 

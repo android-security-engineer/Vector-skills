@@ -7,6 +7,89 @@
 
 提供管理器里两类对话框：首次启动的欢迎/快捷方式引导对话框，以及一个支持系统级背景模糊（blur behind）的 `MaterialAlertDialogBuilder` 子类——后者是全 app 对话框的统一基座。
 
+## 类协作
+
+两个类构成"宿主 + 基座"关系：[`WelcomeDialog`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/dialog/WelcomeDialog.java) 是 `DialogFragment` 子类，在 `onCreateDialog` 中 `new BlurBehindDialogBuilder(...)` 构造对话框；[`BlurBehindDialogBuilder`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/dialog/BlurBehindDialogBuilder.java) 是全 app 对话框的统一基座，重写 `create()` 在生成的 `AlertDialog` 上挂窗口模糊监听。
+
+```mermaid
+classDiagram
+    direction LR
+    class DialogFragment {
+        <<androidx.fragment>>
+        +onCreateDialog(Bundle) Dialog
+        +show(FragmentManager, String)
+    }
+    class WelcomeDialog {
+        -shown: boolean$
+        +showIfNeed(FragmentManager)$
+        -parasiticDialog(Builder) Dialog
+        -appDialog(Builder) Dialog
+        +onCreateDialog(Bundle) Dialog
+    }
+    class MaterialAlertDialogBuilder {
+        <<Material>>
+        +create() AlertDialog
+    }
+    class BlurBehindDialogBuilder {
+        +supportBlur: boolean$
+        -mDimAmountWithBlur: float
+        -mDimAmountNoBlur: float
+        +create() AlertDialog
+        -setupWindowBlurListener(AlertDialog)
+        -updateWindowForBlurs(Window, boolean)
+        +getSystemProperty(String, boolean)$
+    }
+    class AlertDialog {
+        <<androidx>>
+    }
+    class ShortcutUtil {
+        <<util 包>>
+        +isRequestPinShortcutSupported(Context)$
+        +requestPinLaunchShortcut(Runnable)$
+        +isLaunchShortcutPinned()$
+    }
+    class BaseFragment {
+        <<fragment 包>>
+        +showHint(int, boolean)
+    }
+
+    WelcomeDialog --|> DialogFragment : extends
+    BlurBehindDialogBuilder --|> MaterialAlertDialogBuilder : extends
+    WelcomeDialog ..> BlurBehindDialogBuilder : onCreateDialog 构造
+    BlurBehindDialogBuilder ..> AlertDialog : create 返回
+    WelcomeDialog ..> ShortcutUtil : 寄生分支请求 pin
+    WelcomeDialog ..> BaseFragment : showHint 反馈结果
+```
+
+`BlurBehindDialogBuilder` 的背景模糊按 Android 版本分流实现，构造后 `create()` 即挂载监听：
+
+```mermaid
+flowchart TD
+    A["new BlurBehindDialogBuilder(context)"] --> B["create() 调 super.create()"]
+    B --> C["setupWindowBlurListener(dialog)"]
+    C --> D{"SDK_INT >= S (31)?"}
+    D -- 是 --> E["addFlags(FLAG_BLUR_BEHIND)<br/>DecorView attach 时注册<br/>addCrossWindowBlurEnabledListener"]
+    D -- "== R (30)" --> F["setOnShowListener<br/>按 supportBlur 直接更新"]
+    D -- 更低 --> G["不模糊<br/>仅 setDimAmount(0.32)"]
+    E --> H{"监听回调: blursEnabled?"}
+    H -- true --> I["setDimAmount(0.1)<br/>setBlurBehindRadius(20)"]
+    H -- false --> J["setDimAmount(0.32)"]
+    F --> K{"supportBlur?"}
+    K -- true --> L["反射 ViewRootImpl.getSurfaceControl<br/>ValueAnimator 1→53<br/>setBackgroundBlurRadius 动画"]
+    K -- false --> J
+    L --> M["DecorView detach 时<br/>animator.cancel()"]
+    I --> N["返回带模糊的 AlertDialog"]
+    J --> N
+    G --> N
+    M --> N
+
+    classDef default fill:#143a4a,color:#fff,stroke:#4fb3d8
+    classDef cond fill:#3a2a10,color:#fff,stroke:#e8a838
+    classDef leaf fill:#1a3a1a,color:#fff,stroke:#5cd980
+    class D,H,K cond
+    class N,M leaf
+```
+
 ## 类清单
 
 | 类 | 说明 |
@@ -18,7 +101,7 @@
 
 ## WelcomeDialog
 
-`public class WelcomeDialog extends DialogFragment`
+[`WelcomeDialog.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/dialog/WelcomeDialog.java) — `public class WelcomeDialog extends DialogFragment`
 
 **欢迎对话框**。由 `HomeFragment.onCreate` 调用 `showIfNeed(...)` 触发。根据 `App.isParasitic` 走两条分支：
 
@@ -46,6 +129,46 @@ public static void showIfNeed(FragmentManager fm)
 
 否则 `new WelcomeDialog().show(fm, "welcome")` 并把 `shown` 置 true。
 
+`showIfNeed` 的判定与寄生分支快捷方式回调时序：
+
+```mermaid
+sequenceDiagram
+    participant HF as HomeFragment.onCreate
+    participant WD as WelcomeDialog
+    participant CM as ConfigManager
+    participant Pref as App.preferences
+    participant SU as ShortcutUtil
+    participant Home as BaseFragment
+
+    HF->>WD: showIfNeed(fm)
+    WD->>WD: shown == true? 跳过
+    WD->>CM: isBinderAlive()
+    alt false
+        CM-->>WD: false → shown=true, 返回
+    end
+    WD->>Pref: getBoolean("never_show_welcome")
+    alt true → shown=true, 返回
+    end
+    WD->>SU: App.isParasitic && isLaunchShortcutPinned()
+    alt 已 pin → shown=true, 返回
+    else 需弹出
+        WD->>WD: new WelcomeDialog().show(fm,"welcome")<br/>shown=true
+        WD->>WD: onCreateDialog → parasiticDialog / appDialog
+        opt 寄生分支点击"创建快捷方式"
+            WD->>SU: requestPinLaunchShortcut(afterPinned)
+            alt 支持 pin
+                SU-->>WD: true
+                Note over SU: 系统请求 pin
+                SU->>Pref: putBoolean("never_show_welcome",true)
+                SU->>Home: showHint(settings_shortcut_pinned_hint)
+            else 不支持
+                SU-->>WD: false
+                WD->>Home: showHint(unsupported_pin_shortcut)
+            end
+        end
+    end
+```
+
 ### 寄生分支的快捷方式回调
 
 "创建快捷方式"按钮点击后调 `ShortcutUtil.requestPinLaunchShortcut(afterPinned)`，回调里：
@@ -59,7 +182,7 @@ public static void showIfNeed(FragmentManager fm)
 
 ## BlurBehindDialogBuilder
 
-`public class BlurBehindDialogBuilder extends MaterialAlertDialogBuilder`
+[`BlurBehindDialogBuilder.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/dialog/BlurBehindDialogBuilder.java) — `public class BlurBehindDialogBuilder extends MaterialAlertDialogBuilder`
 
 **带背景模糊的对话框 Builder**。重写 `create()`，在生成的 `AlertDialog` 上挂窗口模糊监听，跨 Android R/S 版本实现对话框背后的背景模糊效果。全 app 的 `BlurBehindDialogBuilder` 调用点（`HomeFragment`、`ModulesFragment`、`CompileDialogFragment`、`RepoItemFragment` 等）都用它替代原生 Builder。
 

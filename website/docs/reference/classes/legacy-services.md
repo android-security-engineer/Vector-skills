@@ -7,6 +7,112 @@
 
 定义 Xposed 框架提供的**文件访问服务**抽象。在 SELinux enforcing 环境下，模块不能直接读取 `/data/data/*` 下其他应用的文件，需要经服务中转。`BaseService` 定义接口，`DirectAccessService` 是直接文件访问实现，`FileResult` 是读取结果容器。具体实例应从 [`SELinuxHelper.getAppDataFileService()`](./legacy-api#selinuxhelper) 获取。
 
+## 类协作
+
+[`BaseService`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/services/BaseService.java) 定义抽象接口与基于 `readFile` 的默认实现，[`DirectAccessService`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/services/DirectAccessService.java) 覆写为直接 `File` API（无 IPC）；[`FileResult`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/services/FileResult.java) 是 `readFile`/`statFile`/`getFileInputStream` 的统一结果载体，`content` 与 `stream` 互斥。`SELinuxHelper` 是工厂入口。
+
+```mermaid
+classDiagram
+    direction LR
+    class SELinuxHelper {
+        <<legacy 根包>>
+        +getAppDataFileService() BaseService$
+    }
+    class BaseService {
+        <<abstract>>
+        +R_OK$ = 4
+        +W_OK$ = 2
+        +X_OK$ = 1
+        +F_OK$ = 0
+        +hasDirectFileAccess() boolean
+        +checkFileAccess(name,mode)* boolean
+        +checkFileExists(name) boolean
+        +statFile(name)* FileResult
+        +readFile(name)* byte[]
+        +readFile(name,prevSize,prevTime)* FileResult
+        +readFile(name,off,len,prevSize,prevTime)* FileResult
+        +getFileSize(name) long
+        +getFileModificationTime(name) long
+        +getFileInputStream(name) InputStream
+        +ensureAbsolutePath(name)$
+        +throwCommonIOException(errno,...)$
+    }
+    class DirectAccessService {
+        <<final>>
+        +hasDirectFileAccess() boolean
+        +checkFileAccess(name,mode) boolean
+        +statFile(name) FileResult
+        +readFile(name) byte[]
+        +readFile(name,prevSize,prevTime) FileResult
+        +readFile(name,off,len,prevSize,prevTime) FileResult
+        +getFileInputStream(name) InputStream
+    }
+    class FileResult {
+        <<final>>
+        +content: byte[]
+        +stream: InputStream
+        +size: long
+        +mtime: long
+        +FileResult(size, mtime)
+        +FileResult(content, size, mtime)
+        +FileResult(stream, size, mtime)
+    }
+    class FileNotFoundException {
+        <<java>>
+    }
+    class OutOfMemoryError {
+        <<java>>
+    }
+    class IOException {
+        <<java>>
+    }
+
+    DirectAccessService --|> BaseService : extends
+    BaseService ..> FileResult : 返回
+    SELinuxHelper ..> BaseService : 工厂返回
+    BaseService ..> FileNotFoundException : EPERM/EACCES/ENOENT/EISDIR
+    BaseService ..> OutOfMemoryError : ENOMEM
+    BaseService ..> IOException : 其他 errno
+    DirectAccessService ..> FileResult : 构造各重载
+
+    classDef abstract fill:#0e3a36,color:#3dd8c8,stroke:#3dd8c8
+    classDef leaf fill:#1a3a1a,color:#fff,stroke:#5cd980
+    classDef result fill:#143a4a,color:#fff,stroke:#4fb3d8
+    class BaseService abstract
+    class DirectAccessService,SELinuxHelper leaf
+    class FileResult result
+```
+
+带 `previousSize`/`previousTime` 的 `readFile` 变更检测时序：
+
+```mermaid
+sequenceDiagram
+    participant Mod as 模块代码
+    participant SH as SELinuxHelper
+    participant DAS as DirectAccessService
+    participant File as java.io.File
+    participant FR as FileResult
+
+    Mod->>SH: getAppDataFileService()
+    SH-->>Mod: DirectAccessService
+    Mod->>DAS: readFile(filename, prevSize, prevTime)
+    DAS->>File: new File(filename)
+    DAS->>File: length() → size
+    DAS->>File: lastModified() → time
+    DAS->>DAS: prevSize==size && prevTime==time?
+    alt 未变更
+        DAS->>FR: new FileResult(size, time)<br/>content/stream = null
+        FR-->>Mod: 仅返回新 size/mtime
+        Note over Mod: 跳过解析, 节省内存
+    else 已变更
+        DAS->>DAS: readFile(filename) 全量读
+        DAS->>FR: new FileResult(content, size, time)
+        FR-->>Mod: 带内容的结果
+    end
+
+    Note over Mod,DAS: getFileInputStream 版本返回 BufferedInputStream<br/>不全量载入内存(适合大偏好)
+```
+
 ## 类清单
 
 | 类 | 说明 |
