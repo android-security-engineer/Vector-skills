@@ -1,6 +1,6 @@
 # 🗃️ ConfigCache
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/data/ConfigCache.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/data/ConfigCache.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/data/ConfigCache.kt)
 > 🟦 daemon 模块 · 模块/作用域不可变快照与原子交换
 
 ## 类职责

@@ -2,7 +2,7 @@
 
 `dex2oat` 是 Android 的 AOT 编译器，把 DEX 编译成 OAT。VectorDex2Oat 是一套针对它的包装与插桩工具，用于拦截编译过程、强制禁止方法内联，并透明伪装生成的 OAT 元数据以隐藏包装器存在。详见 [架构 · dex2oat 编译劫持](../../architecture/dex2oat)。
 
-> 目录：`dex2oat/src/main/cpp/` · 语言：C++ · 依赖：[LSPlt](https://github.com/JingMatrix/LSPlt)
+> 目录：[`dex2oat/src/main/cpp/`](https://github.com/android-security-engineer/Vector-skills/blob/master/dex2oat/src/main/cpp/) · 语言：C++ · 依赖：[LSPlt](https://github.com/JingMatrix/LSPlt)
 
 ## 它解决什么
 

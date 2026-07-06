@@ -1,6 +1,6 @@
 # 🧱 native · framework / common 包
 
-> 📂 `native/include/framework/android_types.h` · `native/include/common/config.h` · `native/include/common/logging.h`
+> 📂 [`native/include/framework/android_types.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/framework/android_types.h) · [`native/include/common/config.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/common/config.h) · [`native/include/common/logging.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/common/logging.h)
 > 🟦 系统库结构镜像与编译期常量
 
 ## 包职责

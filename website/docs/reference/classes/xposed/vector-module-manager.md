@@ -1,11 +1,53 @@
 # 🧩 VectorModuleManager · 模块管理
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt)
 > 🟦 xposed 模块 · 模块 APK 装载与实例化
 
 ## 类职责
 
-`object VectorModuleManager` 负责把一个 `Module`（来自 `VectorServiceClient` 的模块列表）装载进目标进程：构造 native library 搜索路径、用 `VectorModuleClassLoader` 创建隔离 ClassLoader、做 API 类完整性校验、构造 `VectorContext`、反射实例化模块入口类、`attachFramework`、注册进 `VectorLifecycleManager.activeModules` 并触发 `onModuleLoaded`，最后登记模块声明的 native 入口。
+[`object VectorModuleManager`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt#L19) 负责把一个 `Module`（来自 `VectorServiceClient` 的模块列表）装载进目标进程：构造 native library 搜索路径、用 `VectorModuleClassLoader` 创建隔离 ClassLoader、做 API 类完整性校验、构造 `VectorContext`、反射实例化模块入口类、`attachFramework`、注册进 `VectorLifecycleManager.activeModules` 并触发 `onModuleLoaded`，最后登记模块声明的 native 入口。
+
+## 核心方法
+
+| 方法 | 职责 | 失败处理 |
+| :--- | :--- | :--- |
+| [`loadModule`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt#L26-L111) | 装载一个模块 | 单模块异常 `try/catch` 返回 false，不中断其他模块 |
+| 构造 `librarySearchPath` | 按 `Process.is64Bit()` 选 ABI 拼路径 | — |
+| `VectorModuleClassLoader.loadApk` | 隔离 ClassLoader | 异常 → return false |
+| API 类完整性校验 | 防止模块私打 `XposedModule` | 私打 → return false |
+| `onModuleLoaded` 回调 | 触发模块初始化 | 非 `XposedModule` 子类 skip |
+| `recordNativeEntrypoint` | 登记 JNI 入口 | — |
+
+## ClassLoader 隔离结构
+
+```mermaid
+classDiagram
+    class XposedModule {
+        <<api: io.github.libxposed.api>>
+        +attachFramework(ctx)
+        +onModuleLoaded(param)
+    }
+    class VectorModuleClassLoader {
+        <<bridge ClassLoader>>
+        +loadApk(apkPath, preLoadedDexes, libPath, parent)$
+    }
+    class BaseDexClassLoader {
+        <<hidden base>>
+    }
+    class ModuleEntryClass {
+        <<用户模块入口>>
+        +extends XposedModule
+    }
+
+    XposedModule_ClassLoader["XposedModule.class.classLoader"] --> BootstrapClassLoader["Boot ClassLoader"]
+    BaseDexClassLoader <|-- VectorModuleClassLoader : extends
+    VectorModuleClassLoader --> XposedModule_ClassLoader : parent
+    ModuleEntryClass --> VectorModuleClassLoader : defined by
+    ModuleEntryClass --|> XposedModule : extends
+
+    note for VectorModuleClassLoader "loadClass(XposedModule).classLoader === initLoader?<br/>否则说明模块私打了 API 类"
+    note for ModuleEntryClass "getDeclaredConstructor().newInstance()<br/>setAccessible(true)"
+```
 
 ## 方法签名
 
@@ -17,7 +59,7 @@ fun loadModule(module: Module, isSystemServer: Boolean, processName: String): Bo
 ## 装载流程细节
 
 1. **native 路径**：按 `Process.is64Bit()` 选 `SUPPORTED_64/32_BIT_ABIS`，拼 `${apkPath}!/lib/${abi}${pathSeparator}`；
-2. **ClassLoader**：`VectorModuleClassLoader.loadApk(apkPath, preLoadedDexes, librarySearchPath, initLoader)`，`initLoader` 为 `XposedModule` 自身的 classLoader；
+2. **ClassLoader**：[`VectorModuleClassLoader.loadApk`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt#L42-L48)(apkPath, preLoadedDexes, librarySearchPath, initLoader)，`initLoader` 为 `XposedModule` 自身的 classLoader；
 3. **完整性校验**：`moduleClassLoader.loadClass(XposedModule::class.java.name).classLoader === initLoader`，否则说明模块私打了 API 类，记日志并返回 false；
 4. **Context**：`VectorContext(packageName, applicationInfo, service)` 注入模块；
 5. **实例化**：遍历 `module.file.moduleClassNames`，校验 `isAssignableFrom(XposedModule)`，无参构造 `newInstance`，`attachFramework`，加入 `activeModules`，调 `onModuleLoaded(ModuleLoadedParam)`；

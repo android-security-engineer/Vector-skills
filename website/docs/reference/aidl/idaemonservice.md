@@ -2,7 +2,7 @@
 
 Daemon 的**主入口接口**。Zygote 启动应用进程或 system_server 时，通过此接口向 Daemon 请求该进程专属的应用服务 binder，并可能接收系统上下文分派。
 
-> 📂 `services/daemon-service/src/main/aidl/org/lsposed/lspd/service/IDaemonService.aidl`
+> 📂 [`services/daemon-service/src/main/aidl/org/lsposed/lspd/service/IDaemonService.aidl`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/daemon-service/src/main/aidl/org/lsposed/lspd/service/IDaemonService.aidl)
 > 包：`org.lsposed.lspd.service`
 
 ## 方法
@@ -23,7 +23,7 @@ boolean preStartManager();
 | `dispatchSystemServerContext` | `oneway` | system_server 向 Daemon 分派 `ActivityThread` 与 activity token |
 | `preStartManager` | — | 请求 Daemon 预启动管理器 app，返回是否成功 |
 
-> 📂 实现：`daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt`（`object VectorService : IDaemonService.Stub()`）
+> 📂 实现：[`daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt)（`object VectorService : IDaemonService.Stub()`）
 
 ### requestApplicationService
 

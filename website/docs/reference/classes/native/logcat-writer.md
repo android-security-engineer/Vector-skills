@@ -1,7 +1,7 @@
 # 🧩 Logcat Writer（C++）
 
-> 📂 `daemon/src/main/jni/logcat.cpp`
-> 📂 `daemon/src/main/jni/logcat.h`
+> 📂 [`daemon/src/main/jni/logcat.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/logcat.cpp)
+> 📂 [`daemon/src/main/jni/logcat.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/logcat.h)
 > 🟦 daemon 模块 · native logcat 零拷贝采集与 4MB 轮转
 
 ## 类职责

@@ -1,6 +1,6 @@
 # 🎨 ThemeUtil
 
-> 📂 `app/src/main/java/org/lsposed/manager/util/ThemeUtil.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/util/ThemeUtil.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/util/ThemeUtil.java)
 > 🟦 app 模块 · 主题色与深色模式
 
 ## 类职责

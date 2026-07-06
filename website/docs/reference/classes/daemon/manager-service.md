@@ -1,6 +1,6 @@
 # 🧰 ManagerService
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ManagerService.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ManagerService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ManagerService.kt)
 > 🟦 daemon 模块 · `ILSPManagerService` 实现
 
 ## 类职责

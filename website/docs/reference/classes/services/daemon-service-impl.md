@@ -2,13 +2,61 @@
 
 `IDaemonService` 是 Vector daemon 对外暴露的**根 Binder 服务**，由 `VectorService` 单例实现，经桥事务注入 `system_server`。
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt`
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt`（注入逻辑）
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt)
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt)（注入逻辑）
 > 📡 services AIDL · `IDaemonService`
 
 ## 职责
 
-`object VectorService : IDaemonService.Stub()` 是 daemon 的入口 Binder。它接收 `system_server` 派发的上下文、注册系统广播与 UID 观察者、响应应用进程的服务请求、派发系统事件。命令分发与心跳管理是其核心。
+[`object VectorService : IDaemonService.Stub()`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt#L33) 是 daemon 的入口 Binder。它接收 `system_server` 派发的上下文、注册系统广播与 UID 观察者、响应应用进程的服务请求、派发系统事件。命令分发与心跳管理是其核心。
+
+## 核心方法
+
+| 方法 | 职责 | 关键逻辑 |
+| :--- | :--- | :--- |
+| [`dispatchSystemServerContext`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt#L41-L55) | 接收 system_server 上下文 | 存 `appThread`/`token`，`registerReceivers()`，晚期注入则强制 boot completed |
+| [`requestApplicationService`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt#L57-L79) | 响应应用进程心跳注册 | 校验 `callingUid==1000`，幂等去重，作用域判定，注册心跳后返回单例 |
+| [`preStartManager`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt#L81) | 标记寄生管理器将启 | 转发 `ManagerService.preStartManager()` |
+| `registerReceivers` | 注册系统广播与 UID 观察者 | 7 个 IntentFilter + 1 个 IUidObserver，Android 14+ 用 `RECEIVER_NOT_EXPORTED` |
+| `dispatchPackageChanged` | 包变更派发 | 更新模块 DB、自动包含、广播通知管理器 |
+
+## 类结构
+
+```mermaid
+classDiagram
+    class IDaemonService_Stub {
+        <<AIDL Stub>>
+    }
+    class VectorService {
+        <<object>>
+        -boolean bootCompleted
+        +dispatchSystemServerContext(appThread, token)
+        +requestApplicationService(uid,pid,processName,heartBeat) ILSPApplicationService?
+        +preStartManager() boolean
+        -registerReceivers()
+        -createReceiver() IIntentReceiver
+        -dispatchBootCompleted()
+        -dispatchConfigurationChanged()
+        -dispatchPackageChanged(intent)
+        -dispatchModuleScope(intent)
+    }
+    class IUidObserver_impl {
+        <<anonymous>>
+        +onUidActive(uid)
+        +onUidCachedChanged(uid,cached)
+        +onUidIdle(uid,disabled)
+        +onUidGone(uid,disabled)
+    }
+    class IIntentReceiver_impl {
+        <<anonymous>>
+        +performReceive(intent,...)
+    }
+    IDaemonService_Stub <|-- VectorService : extends
+    VectorService ..> IUidObserver_impl : 注册
+    VectorService ..> IIntentReceiver_impl : createReceiver
+    IUidObserver_impl ..> ModuleService : uidStarts/uidGone
+    IIntentReceiver_impl ..> VectorService : 分发 action
+```
 
 ## 接口契约
 
@@ -51,6 +99,39 @@ graph TD
 4. `ApplicationService.registerHeartBeat` 成功才返回单例。
 
 心跳的"活性"由 `ProcessInfo` 实现 `IBinder.DeathRecipient`：进程死亡时 `binderDied` 自动移除注册项，无需显式注销。
+
+### requestApplicationService 时序
+
+```mermaid
+sequenceDiagram
+    participant APP as 应用进程<br/>(被注入)
+    participant SS as system_server
+    participant VS as VectorService
+    participant AS as ApplicationService
+    participant MS as ManagerService
+
+    APP->>SS: requestApplicationService(uid,pid,name,heartBeat)
+    SS->>VS: 转发（callingUid==1000）
+    VS->>VS: 校验 Binder.getCallingUid()==1000
+    alt 非法调用方
+        VS-->>SS: null (拒绝)
+    else 已注册
+        VS-->>SS: null (幂等)
+    else 命中管理器/作用域
+        VS->>MS: tryRegisterManagerProcess(pid,uid,name)
+        alt 是管理器
+            MS->>MS: managerPid=pid
+        end
+        VS->>AS: registerHeartBeat(uid,pid,name,heartBeat)
+        AS->>AS: ProcessInfo.linkToDeath
+        VS-->>SS: ApplicationService 单例
+        SS-->>APP: ILSPApplicationService
+    else 应跳过
+        VS-->>SS: null (skip)
+    end
+
+    note over AS,APP: 进程死亡 → heartBeat.binderDied<br/>→ processes.remove(key)
+```
 
 ## 状态查询与事件派发
 

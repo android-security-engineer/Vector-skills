@@ -1,6 +1,6 @@
 # ☕ zygisk · kotlin 根包
 
-> 📂 `zygisk/src/main/kotlin/org/matrix/vector/`
+> 📂 [`zygisk/src/main/kotlin/org/matrix/vector/`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/kotlin/org/matrix/vector/)
 > 🟦 Zygisk 子系统的 Framework Loader 层（Kotlin）
 
 ## 包职责

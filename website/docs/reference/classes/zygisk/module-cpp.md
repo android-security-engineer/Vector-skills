@@ -1,6 +1,6 @@
 # 🧩 VectorModule (module.cpp)
 
-> 📂 `zygisk/src/main/cpp/module.cpp`
+> 📂 [`zygisk/src/main/cpp/module.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/cpp/module.cpp)
 > 🟦 zygisk 模块 · Zygisk 生命周期与 specialize 回调
 
 ## 类职责

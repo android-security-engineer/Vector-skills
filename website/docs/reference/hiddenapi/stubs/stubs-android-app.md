@@ -2,7 +2,7 @@
 
 `android.app.*` 桩覆盖应用进程内部的核心类——主线程入口、APK 加载表示、与 `ActivityManagerService` 的 Binder 接口、通知与系统回调。Vector 的 `bridge` 与 `legacy` 模块大量经这些桩访问应用进程内部状态。
 
-> 📂 `hiddenapi/stubs/src/main/java/android/app/`
+> 📂 [`hiddenapi/stubs/src/main/java/android/app/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/src/main/java/android/app/)
 > 🏛️ hiddenapi · [stubs 总览](.) · [bridge](../bridge)
 
 ## 桩类一览

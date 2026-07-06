@@ -1,6 +1,6 @@
 # ⚙️ VectorBootstrap
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/di/VectorBootstrap.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/di/VectorBootstrap.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/di/VectorBootstrap.kt)
 > 🟩 xposed 模块 · DI 引导与 legacy 委托注册表
 
 ## 类职责

@@ -1,8 +1,8 @@
 # 🧩 Deopt Trampoline（C++）
 
-> 📂 `native/src/jni/hook_bridge.cpp`（`deoptimizeMethod`）
-> 📂 `dex2oat/src/main/cpp/dex2oat.cpp`（`--inline-max-code-units=0`）
-> 📂 `dex2oat/src/main/cpp/oat_hook.cpp`（cmdline 伪造）
+> 📂 [`native/src/jni/hook_bridge.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/jni/hook_bridge.cpp)（`deoptimizeMethod`）
+> 📂 [`dex2oat/src/main/cpp/dex2oat.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/dex2oat/src/main/cpp/dex2oat.cpp)（`--inline-max-code-units=0`）
+> 📂 [`dex2oat/src/main/cpp/oat_hook.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/dex2oat/src/main/cpp/oat_hook.cpp)（cmdline 伪造）
 > 🟦 native/dex2oat 模块 · 反优化的 native 部分
 
 ## 类职责

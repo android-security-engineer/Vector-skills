@@ -2,7 +2,7 @@
 
 `sepolicy.rule` 是 Magisk 模块的 SELinux 策略扩展文件，由 `magiskpolicy` 在启动早期应用，为 Vector 的 dex2oat 包装器与数据目录放行必要权限。
 
-> 📂 `zygisk/module/sepolicy.rule`
+> 📂 [`zygisk/module/sepolicy.rule`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/module/sepolicy.rule)
 > 📦 magisk-loader 模块 · SELinux 策略
 
 ## 策略内容

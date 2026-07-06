@@ -1,6 +1,6 @@
 # 🏛️ SystemServerService
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/SystemServerService.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/SystemServerService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/SystemServerService.kt)
 > 🟦 daemon 模块 · system_server 侧代理与 binder 转发
 
 ## 类职责

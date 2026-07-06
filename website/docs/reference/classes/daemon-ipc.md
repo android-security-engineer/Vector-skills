@@ -1,6 +1,6 @@
 # daemon · ipc 包
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/)
 > 🔌 AIDL 端点实现·进程注册·CLI 命令分发
 
 ## 包职责

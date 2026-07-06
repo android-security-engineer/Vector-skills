@@ -2,7 +2,7 @@
 
 管理器 app 调用的**控制接口**——Vector 所有管理操作的总线。模块开关、作用域、日志、强停、重启、包管理、用户管理、DEX 优化等全部经此。本接口方法最多，按功能分组说明。
 
-> 📂 `services/manager-service/src/main/aidl/org/lsposed/lspd/ILSPManagerService.aidl`
+> 📂 [`services/manager-service/src/main/aidl/org/lsposed/lspd/ILSPManagerService.aidl`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/manager-service/src/main/aidl/org/lsposed/lspd/ILSPManagerService.aidl)
 > 包：`org.lsposed.lspd`
 
 ## 常量

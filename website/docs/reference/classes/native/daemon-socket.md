@@ -1,6 +1,6 @@
 # 🧩 Daemon Socket（C++）
 
-> 📂 `dex2oat/src/main/cpp/dex2oat.cpp`
+> 📂 [`dex2oat/src/main/cpp/dex2oat.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/dex2oat/src/main/cpp/dex2oat.cpp)
 > 🟦 dex2oat 模块 · dex2oat wrapper 与 daemon 间的 unix domain socket
 
 ## 类职责

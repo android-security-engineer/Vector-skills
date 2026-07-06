@@ -2,7 +2,7 @@
 
 `hiddenapi` 模块让 Vector 能调用 Android 的**非公开（hidden）API**。它分两部分：`bridge`（运行时桥接）和 `stubs`（编译期桩）。
 
-> 目录：`hiddenapi/` · 子模块：`bridge` · `stubs` · 语言：Java
+> 目录：[`hiddenapi/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/) · 子模块：`bridge` · `stubs` · 语言：Java
 
 ## 它解决什么
 

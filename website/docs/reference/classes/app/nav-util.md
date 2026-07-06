@@ -1,6 +1,6 @@
 # 🧭 NavUtil · ShortcutUtil · 导航与快捷方式
 
-> 📂 `app/src/main/java/org/lsposed/manager/util/`
+> 📂 [`app/src/main/java/org/lsposed/manager/util/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/util/)
 > 🟦 app 模块 · 外链打开与桌面快捷方式
 
 ## 包职责

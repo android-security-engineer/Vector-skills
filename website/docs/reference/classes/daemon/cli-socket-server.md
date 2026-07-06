@@ -1,7 +1,7 @@
 # 🖥️ CliSocketServer · CliHandler
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/env/CliSocketServer.kt`
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/CliHandler.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/env/CliSocketServer.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/CliSocketServer.kt)
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/CliHandler.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/CliHandler.kt)
 > 🟦 daemon 模块 · 本地 CLI 套接字与命令分发
 
 ## 类职责

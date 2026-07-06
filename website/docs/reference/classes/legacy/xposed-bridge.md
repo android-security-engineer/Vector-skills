@@ -1,6 +1,6 @@
 # 🌉 XposedBridge
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XposedBridge.java`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XposedBridge.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XposedBridge.java)
 > 🟦 legacy 模块 · Xposed API 的中枢门面
 
 ## 类职责

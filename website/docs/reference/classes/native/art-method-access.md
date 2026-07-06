@@ -1,8 +1,8 @@
 # 🧩 ArtMethod Access（C++）
 
-> 📂 `native/src/core/context.cpp`（`InitArtHooker`）
-> 📂 `native/src/jni/hook_bridge.cpp`（`deoptimizeMethod`）
-> 📂 `native/src/core/native_api.cpp`（`art_symbol_resolver`）
+> 📂 [`native/src/core/context.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/core/context.cpp)（`InitArtHooker`）
+> 📂 [`native/src/jni/hook_bridge.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/jni/hook_bridge.cpp)（`deoptimizeMethod`）
+> 📂 [`native/src/core/native_api.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/core/native_api.cpp)（`art_symbol_resolver`）
 > 🟦 native 模块 · ArtMethod 跨版本字段访问（基于调用方推断）
 
 ## 类职责
@@ -40,7 +40,7 @@ return InstallNativeAPI(lsplant::InitInfo{
 
 LSPlant 需要解析 ART 内部符号（如 `ArtMethod::SetAccessFlags`、`quick_to_interpreter_bridge`、`kAccessFlagsOffset` 相关函数）时会回调 `art_symbol_resolver`。Vector 实现用 `ElfSymbolCache::GetLinker()`（`libart.so` 的 `ElfImage`）`getSymbAddress(symbol)` 按名查地址。
 
-> 📂 ArtMethod 字段偏移的真正符号/常量定义在 LSPlant 内部（`external/lsplant`），Vector 仓库不包含其源码。
+> 📂 ArtMethod 字段偏移的真正符号/常量定义在 LSPlant 内部（[`external/lsplant`](https://github.com/android-security-engineer/Vector-skills/blob/master/external/lsplant)），Vector 仓库不包含其源码。
 
 ## 接入点三：deoptimizeMethod
 

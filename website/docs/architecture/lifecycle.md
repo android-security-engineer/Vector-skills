@@ -24,6 +24,40 @@ graph LR
     classDef ok fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
 ```
 
+## 进程准入决策
+
+并非每个 fork 出来的进程都要注入。Zygisk 模块在 [preAppSpecialize](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/cpp/module.cpp) 里做严格的准入过滤，决定 `should_inject_` 标志：
+
+```mermaid
+graph TD
+    START["preAppSpecialize(args)"]:::step
+    START --> MGR{"uid == HostPackageUid<br/>且 niceName == ManagerPackageName?"}
+    MGR -->|是| MGRH["标记 is_manager_app_<br/>追加 GID_INET(3003)<br/>改 niceName 为 INJECTED_PACKAGE"]:::step
+    MGR -->|否| SKIP1
+    MGRH --> SKIP1
+    SKIP1{"有 app_data_dir?"} -->|否| SKIP["should_inject_=false<br/>setOption(DLCLOSE_MODULE_LIBRARY)"]:::bad
+    SKIP1 -->|是| ZYG{"is_child_zygote?"}
+    ZYG -->|是| SKIP
+    ZYG -->|否| ISO{"UID 在隔离进程区间?"}
+    ISO -->|是| SKIP
+    ISO -->|否| OK["should_inject_=true"]:::ok
+    OK --> POST["postAppSpecialize: 拉 DEX+映射+引导"]:::def
+    classDef step fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef def fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef bad fill:#3a2a2a,stroke:#e8a838,color:#ffd9b0
+    classDef ok fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+```
+
+隔离进程区间是 [Android 文件系统配置](https://android.googlesource.com/platform/system/core/+/master/libcutils/include/private/android_filesystem_config.h) 定义的常量，模块里硬编码：
+
+| 区间 | UID 范围 | 含义 | 为何跳过 |
+| :--- | :--- | :--- | :--- |
+| isolated_app | 99000–99999 | WebView 渲染、沙箱 | 重度沙箱，注入无意义且风险高 |
+| app_zygote_isolated | 90000–98999 | 应用 zygote 子进程 | 同上 |
+| SHARED_RELRO_UID | 1037 | 共享 RELRO 进程 | 不需 Hook |
+
+`setOption(zygisk::DLCLOSE_MODULE_LIBRARY)` 告诉 Zygisk"我们不注入，可以 dlclose 我的 .so"——避免在无关进程里残留 native 库映射，既是资源节约也是隐蔽性（扫描 `/proc/pid/maps` 找不到 Vector 的 so）。`instance_.release()` 防止静态 `unique_ptr` 析构时 double-free。
+
 ## 心跳 Binder 是什么
 
 心跳不是一个真正的"心跳信号"（定时 ping），而是一个**假 Binder 对象**（`heartbeat_binder`）。它的精髓在于：Binder 内核驱动天生就具备死亡通知能力。当一个持有 Binder 引用的进程死亡，驱动会通知所有链接了 `DeathRecipient` 的进程。
@@ -132,6 +166,40 @@ sequenceDiagram
 ```
 
 推模式的好处：Daemon 不扫进程列表，模块进程一启动 API 就就位，模块代码执行时不会"错过了早期 Hook 窗口"。
+
+## libxposed 模块的生命周期事件派发
+
+模块实例化后并非"一次 Hook 永久生效"。libxposed API 定义了一套生命周期回调，框架在合适的时机派发。[VectorLifecycleManager](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/VectorLifecycleManager.kt) 持有 `activeModules: MutableSet<XposedModule>`（`ConcurrentHashMap.newKeySet()` 线程安全集），每个回调遍历集合并对每个模块 `runCatching` 包裹——单个模块抛异常不影响其它模块。
+
+```mermaid
+graph TD
+    LOAD["VectorModuleManager.loadModule"]:::step
+    LOAD --> INST["反射实例化 XposedModule 子类"]:::step
+    INST --> ATTACH["attachFramework(VectorContext)"]:::step
+    ATTACH --> REG["activeModules.add(moduleInstance)"]:::def
+    REG --> MOD["onModuleLoaded(ModuleLoadedParam)"]:::def
+    REG -.后续事件.-> EVT{"运行期事件"}
+    EVT --> P1["onPackageLoaded"]:::def
+    EVT --> P2["onPackageReady"]:::def
+    EVT --> SS["onSystemServerStarting"]:::def
+    P1 -.param.-> PLP["PackageLoadedParam<br/>(pkg, appInfo, isFirst, classLoader)"]:::note
+    P2 -.param.-> PRP["PackageReadyParam<br/>+ AppComponentFactory (API≥28)"]:::note
+    classDef step fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef def fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef note fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+```
+
+三个派发入口：
+
+- [VectorModuleManager.loadModule](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt)：实例化后立即派发 `onModuleLoaded`，这是模块的"出生通知"，模块可在此注册自身 Hook。
+- `dispatchPackageLoaded` / `dispatchPackageReady`：由 [LoadedApkHookers](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hookers/LoadedApkHookers.kt) 拦截 `LoadedApk` 构造与 `createOrUpdateClassLoaderLocked` 时触发。`PackageReadyParam` 在 API ≥ 28 时携带 `AppComponentFactory`（隔离为 `PackageReadyParamImplP` 类，避免在 Android 8.1 及以下 Verifier 崩溃）。
+- `dispatchSystemServerStarting`：仅 system_server，模块可在此 Hook 系统服务启动期方法。
+
+### @AfterInvocation 与 legacy 桥接
+
+legacy 模块（`assets/xposed_init`）走的是经典 `XC_LoadPackage` 回调，需经 [VectorBootstrap](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/di/VectorBootstrap.kt) 的 `LegacyFrameworkDelegate` 桥接。`processLegacyHook` 在 Hook 原方法前后插入 legacy 回调链，靠 `OriginalInvoker.invoke()` 在合适时机回调原实现——这是 `@AfterInvocation` 语义的实现基础：Hook 方法返回后，legacy 包装层仍能拿到返回值继续处理。
+
+完整性检查：`loadModule` 里若 `moduleClassLoader.loadClass("io.github.libxposed.api.XposedModule").classLoader !== initLoader`，说明模块把 API 类编译进了自己 APK，直接拒绝加载——防止模块自带被篡改的 API 绕过框架约束。
 
 ## 两种生命周期机制对比
 

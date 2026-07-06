@@ -2,7 +2,7 @@
 
 `android.content.*` 桩覆盖三大块：`content`（Context/Intent/广播）、`content.pm`（包管理与安装）、`content.res`（资源）。这些桩是 Vector 查询/安装应用、注入资源的基础。
 
-> 📂 `hiddenapi/stubs/src/main/java/android/content/` · `content/pm/` · `content/res/`
+> 📂 [`hiddenapi/stubs/src/main/java/android/content/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/src/main/java/android/content/) · [`content/pm/`](https://github.com/android-security-engineer/Vector-skills/blob/master/content/pm/) · [`content/res/`](https://github.com/android-security-engineer/Vector-skills/blob/master/content/res/)
 > 🏛️ hiddenapi · [stubs 总览](.) · [bridge](../bridge)
 
 ## android.content — 上下文与 Intent

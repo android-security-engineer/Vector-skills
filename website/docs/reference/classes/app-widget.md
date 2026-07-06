@@ -1,6 +1,6 @@
 # app · ui/widget 包
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/widget/`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/widget/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/widget/)
 > 🟦 管理器的自定义控件
 
 ## 包职责

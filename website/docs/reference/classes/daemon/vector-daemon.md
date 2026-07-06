@@ -1,6 +1,6 @@
 # 🚀 VectorDaemon
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt)
 > 🟦 daemon 模块 · 进程入口与主 Looper 引导
 
 ## 类职责

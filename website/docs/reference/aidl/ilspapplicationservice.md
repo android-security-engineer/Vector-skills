@@ -2,7 +2,7 @@
 
 被注入应用（用户 app 或 system_server）持有的**应用侧服务接口**。Daemon 把这个 binder 注入到目标进程，进程借此拉取框架资产：模块列表、偏好路径、混淆映射、日志开关，以及管理器 binder。
 
-> 📂 `services/daemon-service/src/main/aidl/org/lsposed/lspd/service/ILSPApplicationService.aidl`
+> 📂 [`services/daemon-service/src/main/aidl/org/lsposed/lspd/service/ILSPApplicationService.aidl`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/daemon-service/src/main/aidl/org/lsposed/lspd/service/ILSPApplicationService.aidl)
 > 包：`org.lsposed.lspd.service`
 
 ## 方法
@@ -19,7 +19,7 @@ String getPrefsPath(String packageName);
 ParcelFileDescriptor requestInjectedManagerBinder(out List<IBinder> binder);
 ```
 
-> 📂 实现：`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ApplicationService.kt`（`object ApplicationService : ILSPApplicationService.Stub()`）
+> 📂 实现：[`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ApplicationService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ApplicationService.kt)（`object ApplicationService : ILSPApplicationService.Stub()`）
 > 除 AIDL 声明的方法外，本接口还承载两个**自定义 transaction code**（见[桥接 transaction](#桥接-transaction)）。
 
 ## 方法说明

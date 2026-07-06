@@ -1,6 +1,6 @@
 # app · ui/dialog 包
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/dialog/`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/dialog/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/dialog/)
 > 🟦 管理器的对话框组件
 
 ## 包职责

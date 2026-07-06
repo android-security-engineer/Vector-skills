@@ -1,6 +1,6 @@
 # legacy · impl 包
 
-> 📂 `legacy/src/main/java/org/matrix/vector/legacy/` · `org/matrix/vector/`
+> 📂 [`legacy/src/main/java/org/matrix/vector/legacy/`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/org/matrix/vector/legacy/) · [`org/matrix/vector/`](https://github.com/android-security-engineer/Vector-skills/blob/master/org/matrix/vector/)
 > 🟦 现代↔legacy 翻译边界与 DI 引导
 
 ## 包职责

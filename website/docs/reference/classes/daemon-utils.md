@@ -1,6 +1,6 @@
 # daemon · utils 包
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/utils/`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/utils/`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/)
 > 🧰 上下文伪造·签名校验·DEX 混淆·设备兼容 workaround
 
 ## 包职责

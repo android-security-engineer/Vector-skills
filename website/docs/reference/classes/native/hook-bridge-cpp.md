@@ -1,6 +1,6 @@
 # ⚙️ hook_bridge.cpp
 
-> 📂 `native/src/jni/hook_bridge.cpp`
+> 📂 [`native/src/jni/hook_bridge.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/jni/hook_bridge.cpp)
 > 🟦 native 模块 · ART 方法 hook 引擎与并发 registry
 
 ## 文件职责

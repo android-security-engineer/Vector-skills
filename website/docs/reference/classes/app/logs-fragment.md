@@ -1,6 +1,6 @@
 # 📜 LogsFragment
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/fragment/LogsFragment.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/fragment/LogsFragment.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/fragment/LogsFragment.java)
 > 🟦 app 模块 · 日志查看（Verbose / 模块日志双页）
 
 ## 类职责

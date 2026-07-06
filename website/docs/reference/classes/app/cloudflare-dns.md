@@ -1,6 +1,6 @@
 # 🌐 CloudflareDNS · NoSniFactory · 网络
 
-> 📂 `app/src/main/java/org/lsposed/manager/util/`
+> 📂 [`app/src/main/java/org/lsposed/manager/util/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/util/)
 > 🟦 app 模块 · DoH 域名解析与无 SNI 的 TLS 工厂
 
 ## 包职责

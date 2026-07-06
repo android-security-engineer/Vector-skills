@@ -1,6 +1,6 @@
 # app · repo 包
 
-> 📂 `app/src/main/java/org/lsposed/manager/repo/`（含 `repo/model/` 子包）
+> 📂 [`app/src/main/java/org/lsposed/manager/repo/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/repo/)（含 [`repo/model/`](https://github.com/android-security-engineer/Vector-skills/blob/master/repo/model/) 子包）
 > 🟦 在线模块仓库的拉取、缓存与解析
 
 ## 包职责

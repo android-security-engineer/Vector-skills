@@ -1,9 +1,9 @@
 # 🧩 Symbol Resolver（C++）
 
-> 📂 `native/include/elf/elf_image.h`
-> 📂 `native/src/elf/elf_image.cpp`
-> 📂 `native/include/elf/symbol_cache.h`
-> 📂 `native/src/elf/symbol_cache.cpp`
+> 📂 [`native/include/elf/elf_image.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/elf/elf_image.h)
+> 📂 [`native/src/elf/elf_image.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/elf/elf_image.cpp)
+> 📂 [`native/include/elf/symbol_cache.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/elf/symbol_cache.h)
+> 📂 [`native/src/elf/symbol_cache.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/elf/symbol_cache.cpp)
 > 🟦 native 模块 · ELF 内存解析与符号查找缓存
 
 ## 类职责
@@ -23,7 +23,7 @@ explicit ElfImage(std::string_view lib_name);
 
 构造流程：`findModuleBase()` 扫 `/proc/self/maps` 找 `lib_name` 的内存基址 `base_` 与加载路径 `path_`；`open(path_)+mmap(PROT_READ,MAP_SHARED)` 把磁盘 ELF 映射进内存 `file_map_`；`parseHeaders` 解析 section headers 定位 `.dynsym`/`.dynstr`/`.gnu.hash`/`.hash`；若 ELF 被 strip 则 `decompressGnuDebugData()` 解压 `.gnu_debugdata`（XZ）取 `.symtab`。
 
-> 📂 基址来自 `/proc/self/maps` 扫描，磁盘内容来自 mmap——两者结合才能算出符号运行时绝对地址。
+> 📂 基址来自 [`/proc/self/maps`](https://github.com/android-security-engineer/Vector-skills/blob/master//proc/self/maps) 扫描，磁盘内容来自 mmap——两者结合才能算出符号运行时绝对地址。
 
 ## 符号查找（三策略）
 

@@ -1,6 +1,6 @@
 # 🏡 HomeFragment
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/fragment/HomeFragment.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/fragment/HomeFragment.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/fragment/HomeFragment.java)
 > 🟦 app 模块 · 首页状态卡
 
 ## 类职责

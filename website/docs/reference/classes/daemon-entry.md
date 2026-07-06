@@ -1,6 +1,6 @@
 # daemon · 入口与主服务
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/`（根目录文件）
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/)（根目录文件）
 > 🚀 进程入口·主 `IDaemonService`·CLI 客户端
 
 ## 包职责

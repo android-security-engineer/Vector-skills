@@ -1,13 +1,66 @@
 # 🪝 VectorLegacyCallback · legacy 回调桥接
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorLegacyCallback.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorLegacyCallback.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorLegacyCallback.kt)
 > 🟦 xposed 模块 · `XposedBridge.LegacyApiSupport` 的状态适配器
 
 ## 类职责
 
-`class VectorLegacyCallback<T : Executable>` 是面向 legacy Xposed API（`XposedBridge`/`XC_MethodHook`）的可变状态容器。当 legacy 模块通过 `BaseInvoker` 的 `Chain` 终端被调用时，框架把当前方法、`thisObject`、`args` 装进本对象传给 legacy hook，legacy hook 通过 `setResult`/`setThrowable` 改写返回值或抛异常，`isSkipped` 标记是否短路了原方法。
+[`class VectorLegacyCallback<T : Executable>`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorLegacyCallback.kt#L9) 是面向 legacy Xposed API（`XposedBridge`/`XC_MethodHook`）的可变状态容器。当 legacy 模块通过 `BaseInvoker` 的 `Chain` 终端被调用时，框架把当前方法、`thisObject`、`args` 装进本对象传给 legacy hook，legacy hook 通过 `setResult`/`setThrowable` 改写返回值或抛异常，`isSkipped` 标记是否短路了原方法。
 
 > 注释明确：本类包含的状态变更**仅供 legacy 模块支持**，不参与现代 API 路径。
+
+## 核心字段与方法
+
+| 成员 | 签名 | 作用 |
+| :--- | :--- | :--- |
+| `method` | `val method: T : Executable` | 被挂钩的方法/构造，不可变 |
+| `thisObject` | `var thisObject: Any?` | 调用接收者，框架进入前设置 |
+| `args` | `var args: Array<Any?>` | 实参数组，legacy hook 可改写元素 |
+| `result` | `var result: Any? (private set)` | legacy hook 设置的返回值 |
+| `throwable` | `var throwable: Throwable? (private set)` | legacy hook 设置的异常 |
+| `isSkipped` | `var isSkipped: Boolean (private set)` | 是否短路原方法 |
+| [`setResult`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorLegacyCallback.kt#L23-L27) | `fun setResult(res: Any?)` | 置 `result`，清 `throwable`，`isSkipped=true` |
+| [`setThrowable`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorLegacyCallback.kt#L29-L33) | `fun setThrowable(t: Throwable?)` | 置 `throwable`，清 `result`，`isSkipped=true` |
+
+## 与调用栈的协作结构
+
+```mermaid
+classDiagram
+    class Executable {
+        <<java.lang.reflect>>
+    }
+    class VectorLegacyCallback~T~ {
+        +T method
+        +Any? thisObject
+        +Array~Any?~ args
+        -Any? result
+        -Throwable? throwable
+        -Boolean isSkipped
+        +setResult(res)
+        +setThrowable(t)
+    }
+    class BaseInvoker {
+        <<xposed>>
+        +proceedInvocation()
+        -terminal 闭包
+        +processLegacyHook(executable,thisObject,args,legacyHooks,originalInvoker)
+    }
+    class XC_MethodHook {
+        <<legacy>>
+        +beforeHookedMethod(param)
+        +afterHookedMethod(param)
+    }
+    class HookBridge {
+        <<xposed>>
+        +callbackSnapshot() Array
+    }
+
+    VectorLegacyCallback ..> Executable : T 绑定
+    BaseInvoker ..> VectorLegacyCallback : 每次调用 new 一个实例
+    BaseInvoker ..> HookBridge : 取 legacyHooks 快照
+    XC_MethodHook ..> VectorLegacyCallback : before/after 读写状态
+    note for BaseInvoker "terminal 闭包消费 callback.isSkipped<br/>true → 不执行原方法,返回 result 或抛 throwable"
+```
 
 ## 关键字段
 
@@ -68,6 +121,44 @@ stateDiagram-v2
     SkippedThrowable --> [*]: processLegacyHook 抛 throwable
 
     classDef vec fill:#0e3a36,stroke:#3dd8c8,color:#fff
+```
+
+### legacy hook 调用时序
+
+```mermaid
+sequenceDiagram
+    participant CHAIN as VectorChain
+    participant BI as BaseInvoker.terminal
+    participant CB as VectorLegacyCallback
+    participant HOOK as XC_MethodHook<br/>(before/after)
+    participant ORIG as 原方法
+
+    CHAIN->>BI: 终端调用
+    BI->>BI: processLegacyHook(method,thisObject,args,legacyHooks,originalInvoker)
+    BI->>CB: new VectorLegacyCallback(method,thisObject,args)
+    loop 每个 legacy hook
+        BI->>HOOK: beforeHookedMethod(param)
+        HOOK->>CB: param.thisObject/args 可改
+        alt setResult / setThrowable
+            HOOK->>CB: isSkipped=true
+        end
+    end
+    alt callback.isSkipped
+        BI->>BI: 跳过原方法
+        alt throwable != null
+            BI->>CHAIN: 抛 throwable
+        else
+            BI->>CHAIN: 返回 result
+        end
+    else 未跳过
+        BI->>ORIG: 调用原方法
+        ORIG-->>BI: 原返回值
+        loop 每个 legacy hook (after)
+            BI->>HOOK: afterHookedMethod(param)
+            HOOK->>CB: 可 setResult 改写最终返回值
+        end
+        BI->>CHAIN: 返回（可能被改写的）结果
+    end
 ```
 
 ## 使用要点

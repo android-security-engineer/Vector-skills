@@ -1,8 +1,8 @@
 # 🔗 bridge 与 stubs 的协作机制
 
-> 📂 `hiddenapi/bridge/src/main/java/hidden/HiddenApiBridge.java`
-> 📂 `hiddenapi/stubs/src/main/java/` （桩源码树）
-> 📂 `hiddenapi/bridge/build.gradle` · `hiddenapi/stubs/build.gradle`
+> 📂 [`hiddenapi/bridge/src/main/java/hidden/HiddenApiBridge.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/bridge/src/main/java/hidden/HiddenApiBridge.java)
+> 📂 [`hiddenapi/stubs/src/main/java/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/src/main/java/) （桩源码树）
+> 📂 [`hiddenapi/bridge/build.gradle`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/bridge/build.gradle) · [`hiddenapi/stubs/build.gradle`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/build.gradle)
 > 🟦 hiddenapi · bridge + stubs · 运行时桩替换为真实符号
 
 ## 两子模块的分工

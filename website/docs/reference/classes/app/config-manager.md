@@ -1,6 +1,6 @@
 # 🎛️ ConfigManager
 
-> 📂 `app/src/main/java/org/lsposed/manager/ConfigManager.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/ConfigManager.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ConfigManager.java)
 > 🟦 app 模块 · Daemon IPC 门面（全静态方法）
 
 ## 类职责

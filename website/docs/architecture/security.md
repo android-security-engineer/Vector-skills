@@ -23,6 +23,81 @@ graph TD
     classDef def fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
 ```
 
+## 自定义事务码与拒绝服务防御
+
+Vector 用三组自定义 32 位事务码搭便车 Binder，但自定义码也带来风险——任意进程都能向这些码发事务。鉴权与抗滥用是配套设计。
+
+三个事务码（[ipc_bridge.cpp](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/cpp/ipc_bridge.cpp) 与 [ApplicationService.kt](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ApplicationService.kt) 双端各定义一份，值必须一致）：
+
+| 事务码常量 | 整数值 | 方向 | 用途 |
+| :--- | :--- | :--- | :--- |
+| `kBridgeTransactionCode` (`_VEC`) | `('_'<<24)\|('V'<<16)\|('E'<<8)\|'C'` | native→system_server / app→system_server | 心跳 + 取 ApplicationService Binder |
+| `kDexTransactionCode` (`_DEX`) | `('_'<<24)\|('D'<<16)\|('E'<<8)\|'X'` | native→Daemon | 拉取框架 DEX（SharedMemory FD） |
+| `kObfuscationMapTransactionCode` (`_OBF`) | `('_'<<24)\|('O'<<16)\|('B'<<8)\|'F'` | native→Daemon | 拉取类名混淆映射 |
+
+### 鉴权分层
+
+```mermaid
+stateDiagram-v2
+    [*] --> 未知: 进程未注册
+    未知 --> 已注册: system_server 经 SEND_BINDER<br/>校验 caller UID == 0
+    已注册 --> 授权: ApplicationService.registerHeartBeat<br/>核对作用域
+    授权 --> DEX可拉: transact(_DEX)
+    授权 --> OBF可拉: transact(_OBF)
+    授权 --> [*]: 进程死亡<br/>heartbeat_binder linkToDeath
+    未知 --> 拒绝: transact(_DEX/_OBF)<br/>ensureRegistered 抛 RemoteException
+```
+
+三层校验：
+
+1. **SEND_BINDER 仅 root**：[BridgeService.onTransact](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/kotlin/org/matrix/vector/service/BridgeService.kt) 的 `SEND_BINDER` 动作 `if (Binder.getCallingUid() == 0)` 严格限定只有 Daemon（UID 0）能推送初始 service binder，否则直接 false。这把"谁能初始化 Daemon 连接"锁死到 root。
+2. **心跳注册门槛**：`GET_BINDER` 经 system_server Trap 转发给 Daemon 的 `requestApplicationService`，Daemon 核对调用者作用域后才返回 `ApplicationService` Binder 并 `registerHeartBeat`。未注册进程调任何 `_DEX`/`_OBF` 都被 `ensureRegistered()` 以 `throw RemoteException("Not registered")` 拒绝。
+3. **失败调用者缓存**：native 侧 `BinderCaller` 经 libbinder 符号 `_ZN7android14IPCThreadState13getCallingUidEv` / `getCallingPid` 解析当前调用者 UID+PID（合成 64 位 ID），缓存最近一次 Trap 拒绝的调用者 ID。后续该调用者的 `execTransact` 直接放行到原始实现，避免反复进入 Java Trap 拖慢系统 Binder。
+
+> [!TIP]
+> `BinderCaller` 通过 `ElfSymbolCache::GetLibBinder()` 在运行时解析 `libbinder.so` 的 mangled 符号 `IPCThreadState::selfOrNull` / `getCallingPid` / `getCallingUid`。若符号解析失败（如 OEM 改名 libbinder），调用者校验降级为返回 0，Trap 仍工作但不做失败缓存。
+
+## 管理器 APK 签名校验
+
+Daemon 把管理器 APK 经 FD 提供给寄生宿主前，必须确认 APK 未被篡改——否则攻击者替换 APK 即可在 root 上下文执行任意代码。[InstallerVerifier](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/InstallerVerifier.kt) 用 [apksig](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/InstallerVerifier.kt) 的 `ApkVerifier`（`setMinCheckedPlatformVersion(27)`）做完整签名链校验：
+
+```mermaid
+graph TD
+    REQ["ApplicationService.requestInjectedManagerBinder"]:::step
+    REQ --> VER{"InstallerVerifier.verifyInstallerSignature"}
+    VER -->|result.isVerified=false| FAIL1["throw IOException"]:::bad
+    VER -->|result.isVerified=true| CERT{"mainCert.encoded<br/>== SignInfo.CERTIFICATE?"}
+    CERT -->|否| FAIL2["throw IOException<br/>签名主体不匹配"]:::bad
+    CERT -->|是| OPEN["ParcelFileDescriptor.open<br/>MODE_READ_ONLY 返回"]:::ok
+    classDef step fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef bad fill:#3a2a2a,stroke:#e8a838,color:#ffd9b0
+    classDef ok fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+```
+
+校验在两个时机触发：[ConfigCache.updateManager](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/data/ConfigCache.kt) 探测管理器 UID 时验证已安装 APK，以及 `ApplicationService.requestInjectedManagerBinder` 每次返回 FD 前再验一次。校验失败则 `managerUid` 置 -1、FD 不返回，寄生宿主拿不到管理器代码。`SignInfo.CERTIFICATE` 是编译期由 [daemon/build.gradle.kts](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/build.gradle.kts) 的 `generateSignInfo` 任务从 app 模块签名 keystore 提取并注入 BuildConfig 的固定证书字节。
+
+## JNI 表覆盖：拦截 execTransact
+
+不注册服务只是"不被枚举"，但 `Binder.execTransact` 是 ART 内部方法，要劫持它得改 JNI 函数表。IPCBridge 不用 inline hook，而是用 ART 自带的 `JNIEnvExt::SetTableOverride`（符号 `_ZN3art9JNIEnvExt16SetTableOverrideEPK18JNINativeInterface`）。
+
+```mermaid
+graph LR
+    ORIG["原 JNINativeInterface 表<br/>(env->functions)"]:::in
+    COPY["memcpy 完整复制"]:::step
+    COPY --> MOD["覆盖 CallBooleanMethodV<br/>= CallBooleanMethodV_Hook"]:::def
+    MOD --> SWAP["SetTableOverride(&hook)"]:::step
+    SWAP --> CHK{"methodId == execTransact?"}
+    CHK -->|是| TRAP["ExecTransact_Replace<br/>只认 _VEC 码"]:::def
+    CHK -->|否| BACK["call_boolean_method_v_backup_<br/>原样调用"]:::step
+    classDef in fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef step fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef def fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+```
+
+Hook 函数 `CallBooleanMethodV_Hook` 检查被调 `methodId` 是否等于预存的 `Binder.execTransact` methodId，是则进入 `ExecTransact_Replace`（仅 `code == kBridgeTransactionCode` 时拦截，否则放行原始实现），否则直接调原 `CallBooleanMethodV`。这种"全表复制 + 单槽替换 + 原函数回退"的方式比 inline hook 更隐蔽——不改 ART 代码段，只在进程自己的 JNI 表里动一个指针。
+
+详见 [IPC 与 Binder 中继](./ipc)。
+
 ## 防线一：不注册任何服务
 
 标准 Android IPC 把 AIDL 服务注册进 `ServiceManager`，别人按名字查。但 `service list` 可枚举——发现一个陌生 Hook 框架服务几乎是零成本。Vector 用 JNI Binder Trap 替换 `Binder.execTransact`，只认自有事务码 `_VEC`，借用 `activity`/`serial` 等公共通道搭便车。系统视角里什么都没发生。
@@ -140,6 +215,25 @@ graph TD
 ```
 
 每一层单独都不绝对可靠——比如类名随机后，框架行为特征（Hook 了哪些系统方法）仍可能被行为分析捕获。Vector 的策略是**抬高检测成本到不划算**：反作弊要稳定检测 Vector，得投入运行时行为分析或针对 Hook 引擎本身的指纹，这比扫字符串表难几个数量级。对绝大多数场景，这已足够。
+
+## CLI 令牌与 socket 鉴权
+
+管理器经 CLI socket 读日志、控制 Daemon。Daemon 在 [build.gradle.kts](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/build.gradle.kts) 编译期用 `UUID.randomUUID()` 生成一个随机 `CLI_TOKEN_MSB`/`CLI_TOKEN_LSB`（64 位随机令牌对）注入 BuildConfig。socket 路径 `.cli_sock` 挂在 `/data/adb/lspd`（`u:object_r:system_file:s0`，700 权限），只有 root 能访问，令牌则是第二层防滥用：连接必须带正确 UUID 令牌，否则 [CliSocketServer](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/CliSocketServer.kt) 拒绝。
+
+令牌每次构建都变，意味着不同版本的 daemon/管理器必须配对——攻击者即使拿到旧令牌也无法跨版本复用。
+
+```mermaid
+graph TD
+    MGR["寄生管理器"]:::ui
+    MGR -->|"连接 .cli_sock + UUID 令牌"| CLI["CliSocketServer"]:::core
+    CLI -->|"令牌校验"| AUTH{"BuildConfig.CLI_TOKEN<br/>== 传入令牌?"}
+    AUTH -->|否| REJ["拒绝连接"]:::bad
+    AUTH -->|是| CMD["处理 CLI 命令<br/>(日志流/verbose 切换等)"]:::def
+    classDef ui fill:#143a4a,stroke:#4fb3d8,color:#cfeefb
+    classDef core fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef def fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef bad fill:#3a2a2a,stroke:#e8a838,color:#ffd9b0
+```
 
 ## 小结
 

@@ -1,6 +1,6 @@
 # 🔌 native · jni 包
 
-> 📂 `native/src/jni/` · `native/include/jni/`
+> 📂 [`native/src/jni/`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/jni/) · [`native/include/jni/`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/jni/)
 > 🟦 native↔Java 业务逻辑桥
 
 ## 包职责

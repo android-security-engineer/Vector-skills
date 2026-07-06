@@ -1,6 +1,6 @@
 # legacy · resources 包与 AndroidAppHelper
 
-> 📂 `legacy/src/main/java/android/content/res/` · `android/app/`
+> 📂 [`legacy/src/main/java/android/content/res/`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/content/res/) · [`legacy/src/main/java/android/app/`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/android/app/)
 > 🟦 资源 Hook 与应用信息助手
 
 ## 包职责

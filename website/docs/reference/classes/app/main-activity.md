@@ -1,6 +1,6 @@
 # 🏠 MainActivity
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/activity/MainActivity.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/activity/MainActivity.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/activity/MainActivity.java)
 > 🟦 app 模块 · 单 Activity + Fragment 路由
 
 ## 类职责

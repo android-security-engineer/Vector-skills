@@ -25,6 +25,29 @@ graph LR
 
 混淆映射是一份"原名 → 随机名"的字典。它由 Daemon 在开机时生成，native 层在注入时拉取同一份。两边必须用同一份映射，否则框架无法被定位。
 
+生成逻辑在 [daemon/src/main/jni/obfuscation.cpp](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/obfuscation.cpp) 的 `ensureInitialized`，用 `std::call_once` 保证进程内只生成一次。覆盖的签名前缀是硬编码的 8 条：
+
+| 原始 Dex 签名前缀 | 对应的 Java 包/类族 | 谁会扫到 |
+| :--- | :--- | :--- |
+| `Lde/robv/android/xposed/` | 经典 Xposed API（`XposedBridge` 等） | 反作弊头号特征 |
+| `Landroid/app/AndroidApp` | `AndroidAppHelper` 系 | 行为检测 |
+| `Landroid/content/res/XRes` | `XResources`/`XTypedArray` | 资源 Hook 特征 |
+| `Landroid/content/res/XModule` | 资源模块包装 | 资源 Hook 特征 |
+| `Lio/github/libxposed/api/Xposed` | 现代 libxposed API | 新版特征 |
+| `Lorg/matrix/vector/core/` | Vector 框架核心（含 `Main` 入口） | 框架自身 |
+| `Lorg/matrix/vector/nativebridge/` | native 桥接层 | 框架自身 |
+| `Lorg/matrix/vector/service/` | `BridgeService` 等 IPC 类 | 框架自身 |
+
+### regen 算法：保持长度等长替换
+
+`regen` 函数对每个前缀生成一段**等长**随机串。等长是刻意约束——DEX 字符串表里替换后偏移不变，slicer 的 IR 可直接 in-place `memcpy` 覆盖，无需重建整个 DEX 索引。算法细节：
+
+- 字符集 `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`（52 字母，无数字/符号，避免触发其它特征匹配）。
+- 每个 char 位有 ~10% 概率插入 `/`（包分隔符），但禁止 `L` 紧后斜杠、禁止末位前斜杠，避免破坏 Dex 类型描述符语法。
+- 原串以 `/` 结尾（包前缀）则新串也以 `/` 结尾；否则末位随机字母——保持"是包前缀还是类前缀"的语义。
+
+替换发生在两个层面：DEX 字符串表 in-place 改写（`obfuscateDex`），以及模块 init 列表里的类名前缀替换（`FileSystem.loadModule` 末尾 `moduleClassNames` 按映射 `replace`）。
+
 ```mermaid
 graph TD
     subgraph 开机["开机时：Daemon 生成"]
@@ -80,6 +103,76 @@ sequenceDiagram
 | `kObfuscationMapTransactionCode` | 序列化类名映射字典 | `SetupEntryClass` 定位随机入口 |
 
 DEX 本身的类名在编译时就被随机化了，映射字典是"读这份 DEX 的索引"。两份资产必须来自同一次 Daemon 会话——映射与 DEX 不匹配则 `FindClass` 找不到入口，引导失败。
+
+## DEX 字符串改写管线
+
+混淆不只是给 native 层一份映射字典——DEX 文件本身的字符串表里，那些特征类名也得改掉，否则 `InMemoryDexClassLoader` 加载后内存字符串表里还是 `de.robv.android.xposed.XposedBridge`。改写发生在 Daemon 把 DEX 装进 `SharedMemory` 交付 native 之前。
+
+[obfuscateDex](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/obfuscation.cpp) 用 [dexlib/slicer](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/obfuscation.h) 的 `dex::Reader` → IR → `dex::Writer` 管线：
+
+```mermaid
+graph TD
+    IN["SharedMemory (FD)<br/>原始 DEX"]:::in
+    IN --> MAP{"mmap MAP_SHARED<br/>(非 MAP_PRIVATE!)"}
+    MAP --> SCAN{"memmem 扫描 8 条签名"}
+    SCAN -->|未命中| FAST["无需改写<br/>直接包装 FD 返回"]:::def
+    SCAN -->|命中| IR["dex::Reader.CreateFullIr"]
+    IR --> MUT["遍历 ir->strings<br/>strstr + memcpy in-place 覆盖"]:::step
+    MUT --> W["dex::Writer.CreateImage"]
+    W --> ALLOC["DexAllocator<br/>ASharedMemory_create('obfuscated_dex')"]:::step
+    ALLOC --> OUT["新 SharedMemory FD<br/>(mmap MAP_SHARED 写回)"]:::out
+    OUT --> UNMAP["munmap + close 原 FD"]:::step
+    classDef in fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef def fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef step fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef out fill:#143a4a,stroke:#4fb3d8,color:#cfeefb
+```
+
+两个工程上很关键的点（源码注释明确强调）：
+
+1. **必须用 `MAP_SHARED` 而非 `MAP_PRIVATE`**。Android SharedMemory（ashmem/memfd）若以 `MAP_PRIVATE` 映射会触发 Copy-On-Write，而许多 Android 内核配置下 COW 层不会正确从源页 fault-in 初始内容，导致 native 侧看到全零页，slicer 立即失败。`MAP_SHARED` 保证直接访问 Java 层填充的物理页。
+2. **in-place 零拷贝改写**。slicer 的 IR 字符串指针直接指向 mmap 缓冲区，`memcpy` 覆盖即更新 IR 状态，无需额外堆分配——安全是因为 Daemon 独占这个临时缓冲区生命周期，Java 调用方拿到新 SharedMemory 后会丢弃原始的。
+
+[DexAllocator](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/obfuscation.h) 是自定义的 `dex::Writer::Allocator`，它把 writer 产物写进新建的 ashmem（`ASharedMemory_create("obfuscated_dex", size)`），析构时 **不 close FD**——因为 FD 会被 `GetFd()` 提取出来交给 Java 侧的 `SharedMemory` 构造函数接管生命周期，避免双重 close。
+
+## debug 构建禁用 DEX 混淆
+
+DEX 混淆在 release 构建中默认开启，但 [DaemonState](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/data/DaemonState.kt) 把它写成 `isDexObfuscateEnabled = !BuildConfig.DEBUG`——debug 构建关闭。这是 [b71c33dd](https://github.com/android-security-engineer/Vector-skills/commit/b71c33dd) 提交引入的。
+
+原因：部分 libxposed 模块（如 `io.github.mhmrdd.libxposed.ps.passit`/PlayStrong）在初始化时通过 JNI 按原签名调用 libxposed API 方法。DEX 混淆把这些签名改写后，模块的 JNI `FindClass`/`GetMethodID` 找不到类，初始化必失败。Vector 在 #597 重构中移除了用户侧"Xposed API 保护"开关（对多数用户过于技术化），因此 debug 构建成为兼容性测试通道——模块开发者用 debug 构建验证模块能否正常运行，再决定是否需要扩展兼容混淆模式（如继承 Xposed API 类）。
+
+`OBFUSCATION_MAP_TRANSACTION_CODE` 事务在 debug 构建下仍会返回映射字典，但值等于键（`ApplicationService.onTransact` 里 `if (obfuscation) value else key`），native 侧 `SetupEntryClass` 拿到的就是原类名，行为等价于不混淆。
+
+## FetchObfuscationMap 的事务格式
+
+native 侧 [IPCBridge::FetchObfuscationMap](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/cpp/ipc_bridge.cpp) 经 `kObfuscationMapTransactionCode` 事务拉取映射。Parcel 协议是自定义的：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant NAT as native 注入层
+    participant APP as ApplicationService<br/>(Daemon 侧 Stub)
+    participant OBFS as ObfuscationManager
+
+    NAT->>APP: transact(_OBF, data, reply, 0)
+    APP->>OBFS: ObfuscationManager.getSignatures()
+    Note over OBFS: 首次调用触发 ensureInitialized<br/>std::call_once 生成映射
+    OBFS-->>APP: Map<String,String> (Java HashMap)
+    APP->>APP: writeInt(signatures.size * 2)
+    loop 每条映射
+        APP->>APP: writeString(key) + writeString(value)
+    end
+    APP-->>NAT: reply
+    NAT->>NAT: readInt() → size/2 条
+    loop size/2 次
+        NAT->>NAT: readString() × 2 → result_map[key]=val
+    end
+    NAT->>NAT: ConfigBridge.obfuscation_map(std::move(map))
+```
+
+`size * 2` 是因为 writeInt 写的是"键值对总数"（每个映射占 2 个 string），native 侧 `size / 2` 次循环每次读两个 string。这个 size 校验 `(size % 2 != 0)` 直接返回空 map——防止半截 Parcel 导致后续读串错位。
+
+native 拉到后立刻 `ConfigBridge::GetInstance()->obfuscation_map(std::move(map))` 存进单例，后续 `SetupEntryClass` 与 `HookBridge` 都从这份缓存查，不再跨进程拉取。
 
 ## 对抗静态特征的多层设计
 

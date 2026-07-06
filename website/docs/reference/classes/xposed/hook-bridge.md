@@ -1,6 +1,6 @@
 # 🌐 HookBridge
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/nativebridge/HookBridge.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/nativebridge/HookBridge.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/nativebridge/HookBridge.kt)
 > 🟩 xposed 模块 · native JNI 门面（对应 hook_bridge.cpp）
 
 ## 类职责

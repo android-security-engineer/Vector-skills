@@ -1,8 +1,8 @@
 # 🧩 IXposedMod 规范与现代入口对比
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/IXposedMod.java`
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XposedInit.java` · `initModule`
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/IXposedMod.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/IXposedMod.java)
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XposedInit.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XposedInit.java) · `initModule`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorModuleManager.kt)
 > 🟦 legacy 模块 · 旧接口规范 vs libxposed 现代入口
 
 ## IXposedMod 规范

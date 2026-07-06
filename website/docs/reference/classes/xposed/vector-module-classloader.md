@@ -1,6 +1,6 @@
 # 📦 VectorModuleClassLoader
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorModuleClassLoader.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorModuleClassLoader.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorModuleClassLoader.kt)
 > 🟩 xposed 模块 · 内存 DEX 隔离类加载器
 
 ## 类职责

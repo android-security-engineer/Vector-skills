@@ -2,8 +2,8 @@
 
 `SystemServerService` 实现 `ILSPSystemServerService`，是 daemon 为 `system_server` 进程专门架设的代理服务，在真实系统服务注册前抢占其名字。
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/SystemServerService.kt`
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt`（占位逻辑）
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/SystemServerService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/SystemServerService.kt)
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt)（占位逻辑）
 > 📡 services AIDL · `ILSPSystemServerService`
 
 ## 职责

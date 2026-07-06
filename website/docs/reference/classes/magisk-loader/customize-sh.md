@@ -2,7 +2,7 @@
 
 Vector 以 Magisk/KernelSU 模块 zip 形式分发，`customize.sh` 是刷入时执行的核心安装脚本。
 
-> 📂 `zygisk/module/customize.sh`
+> 📂 [`zygisk/module/customize.sh`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/module/customize.sh)
 > 📦 magisk-loader 模块 · 安装阶段执行
 
 ## 职责

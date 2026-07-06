@@ -1,6 +1,6 @@
 # 🫙 VectorURLStreamHandler · jar: 拦截
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorURLStreamHandler.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorURLStreamHandler.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorURLStreamHandler.kt)
 > 🟦 xposed 模块 · 模块 APK 内资源的 jar: URL 处理器
 
 ## 类职责

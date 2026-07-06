@@ -1,6 +1,6 @@
 # xposed · nativebridge 包
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/nativebridge/`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/nativebridge/`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/nativebridge/)
 > 🟦 Native 层 Kotlin 门面：`external` JNI 声明
 
 ## 包职责

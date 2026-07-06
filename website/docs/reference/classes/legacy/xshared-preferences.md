@@ -1,6 +1,6 @@
 # 📋 XSharedPreferences
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XSharedPreferences.java`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XSharedPreferences.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XSharedPreferences.java)
 > 🟦 legacy 模块 · 跨进程只读偏好读取
 
 ## 类职责

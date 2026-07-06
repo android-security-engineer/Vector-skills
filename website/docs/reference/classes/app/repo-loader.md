@@ -1,6 +1,6 @@
 # 🌐 RepoLoader
 
-> 📂 `app/src/main/java/org/lsposed/manager/repo/RepoLoader.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/repo/RepoLoader.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/repo/RepoLoader.java)
 > 🟦 app 模块 · 在线模块仓库拉取
 
 ## 类职责

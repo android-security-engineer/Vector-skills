@@ -1,6 +1,6 @@
 # 🚀 WelcomeDialog · 模糊背景对话框
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/dialog/`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/dialog/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/dialog/)
 > 🟦 app 模块 · 首次进入欢迎弹窗与模糊背景构建器
 
 ## 包职责

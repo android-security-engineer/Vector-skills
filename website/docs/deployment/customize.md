@@ -2,7 +2,7 @@
 
 VitePress 文档站的视觉与功能定制：主题色、logo、mermaid 配色、自定义域名、footer。
 
-> 📂 `website/docs/.vitepress/theme/custom.css` · `config.ts`
+> 📂 [`website/docs/.vitepress/theme/custom.css`](https://github.com/android-security-engineer/Vector-skills/blob/master/website/docs/.vitepress/theme/custom.css) · `config.ts`
 > 🚀 deployment 运维
 
 ## 定制入口

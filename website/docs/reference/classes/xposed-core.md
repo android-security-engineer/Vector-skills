@@ -1,6 +1,6 @@
 # xposed · core 包
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/core/`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/core/`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/)
 > 🟦 框架核心引擎：启动、反优化、模块加载、Daemon IPC
 
 ## 包职责

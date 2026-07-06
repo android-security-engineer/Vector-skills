@@ -1,7 +1,7 @@
 # 🔌 ModuleService · InjectedModuleService
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ModuleService.kt`
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/InjectedModuleService.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ModuleService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ModuleService.kt)
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/InjectedModuleService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/InjectedModuleService.kt)
 > 🟦 daemon 模块 · libxposed 模块推模式与偏好回调
 
 ## 类职责

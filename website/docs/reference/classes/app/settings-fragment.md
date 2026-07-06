@@ -1,6 +1,6 @@
 # ⚙️ SettingsFragment
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/fragment/SettingsFragment.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/fragment/SettingsFragment.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/fragment/SettingsFragment.java)
 > 🟦 app 模块 · 设置页
 
 ## 类职责

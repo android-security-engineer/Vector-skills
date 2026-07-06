@@ -1,7 +1,7 @@
 # 📜 LogcatMonitor
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/env/LogcatMonitor.kt`
-> 📂 `daemon/src/main/jni/logcat.cpp`（native `runLogcat`/`refreshFd` 回调）
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/env/LogcatMonitor.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/LogcatMonitor.kt)
+> 📂 [`daemon/src/main/jni/logcat.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/logcat.cpp)（native `runLogcat`/`refreshFd` 回调）
 > 🟦 daemon 模块 · native logcat 进程托管与日志文件复活
 
 ## 类职责

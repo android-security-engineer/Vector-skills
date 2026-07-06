@@ -1,6 +1,6 @@
 # 🔧 dex2oat · hooker
 
-> 📂 `dex2oat/src/main/cpp/oat_hook.cpp`
+> 📂 [`dex2oat/src/main/cpp/oat_hook.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/dex2oat/src/main/cpp/oat_hook.cpp)
 > 🟦 OAT 头元数据清洗的 PLT hook 库
 
 ## 职责

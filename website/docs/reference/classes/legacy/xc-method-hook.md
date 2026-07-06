@@ -1,7 +1,7 @@
 # 🪝 XC_MethodHook / XC_MethodReplacement
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XC_MethodHook.java`
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XC_MethodReplacement.java`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XC_MethodHook.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XC_MethodHook.java)
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XC_MethodReplacement.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XC_MethodReplacement.java)
 > 🟦 legacy 模块 · hook 回调抽象基类
 
 ## 类职责

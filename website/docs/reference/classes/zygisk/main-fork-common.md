@@ -1,6 +1,6 @@
 # 🌱 Main (forkCommon)
 
-> 📂 `zygisk/src/main/kotlin/org/matrix/vector/core/Main.kt`
+> 📂 [`zygisk/src/main/kotlin/org/matrix/vector/core/Main.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/kotlin/org/matrix/vector/core/Main.kt)
 > 🟦 zygisk 模块 · Java 侧框架引导入口
 
 ## 类职责

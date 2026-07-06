@@ -1,6 +1,6 @@
 # xposed · di 与 impl 根
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/di/` 与 `impl/` 根
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/di/`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/di/) 与 [`impl/`](https://github.com/android-security-engineer/Vector-skills/blob/master/impl/) 根
 > 🟦 依赖注入、框架上下文、生命周期分发、远程偏好
 
 ## 包职责

@@ -1,6 +1,6 @@
 # 🛠️ XposedHelpers
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XposedHelpers.java`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XposedHelpers.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XposedHelpers.java)
 > 🟦 legacy 模块 · 反射查找与调用的工具集
 
 ## 类职责

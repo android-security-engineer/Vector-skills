@@ -1,6 +1,6 @@
 # 🖼️ AppIconModelLoader · Glide 图标加载
 
-> 📂 `app/src/main/java/org/lsposed/manager/util/AppIconModelLoader.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/util/AppIconModelLoader.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/util/AppIconModelLoader.java)
 > 🟦 app 模块 · 以 `PackageInfo` 为模型的 Glide 图标加载器
 
 ## 类职责

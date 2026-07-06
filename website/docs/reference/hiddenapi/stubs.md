@@ -2,7 +2,7 @@
 
 编译期桩：约 100 个空壳 Java 类，镜像 Android 内部类的方法/字段签名，让 Vector 框架代码能编译通过。运行期这些类被 ART 的真实实现替换。
 
-> 📂 `hiddenapi/stubs/src/main/java/`
+> 📂 [`hiddenapi/stubs/src/main/java/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/src/main/java/)
 > 🏛️ hiddenapi · stubs
 
 ## 工作方式

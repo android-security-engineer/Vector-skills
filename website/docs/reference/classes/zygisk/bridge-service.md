@@ -1,6 +1,6 @@
 # 📡 BridgeService
 
-> 📂 `zygisk/src/main/kotlin/org/matrix/vector/service/BridgeService.kt`
+> 📂 [`zygisk/src/main/kotlin/org/matrix/vector/service/BridgeService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/kotlin/org/matrix/vector/service/BridgeService.kt)
 > 🟦 zygisk 模块 · `execTransact` 的 Kotlin 侧陷阱
 
 ## 类职责

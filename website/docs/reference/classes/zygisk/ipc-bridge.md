@@ -1,7 +1,7 @@
 # 🌉 IPCBridge (ipc_bridge.cpp)
 
-> 📂 `zygisk/src/main/cpp/ipc_bridge.cpp`
-> 📂 `zygisk/src/main/cpp/include/ipc_bridge.h`
+> 📂 [`zygisk/src/main/cpp/ipc_bridge.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/cpp/ipc_bridge.cpp)
+> 📂 [`zygisk/src/main/cpp/include/ipc_bridge.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/cpp/include/ipc_bridge.h)
 > 🟦 zygisk 模块 · JNI Binder Trap 与 `_VEC` 事务
 
 ## 类职责

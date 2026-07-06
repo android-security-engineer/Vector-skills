@@ -1,6 +1,6 @@
 # 🧠 native · core 包
 
-> 📂 `native/include/core/` · `native/src/core/`
+> 📂 [`native/include/core/`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/core/) · [`native/src/core/`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/core/)
 > 🟦 native 库的抽象引擎层
 
 ## 包职责

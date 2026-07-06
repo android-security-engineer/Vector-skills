@@ -1,9 +1,9 @@
 # 🚀 入口回调契约 · Zygote / LoadPackage / InitPackageResources
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/IXposedHookZygoteInit.java`
-> 📂 `legacy/src/main/java/de/robv/android/xposed/IXposedHookLoadPackage.java`
-> 📂 `legacy/src/main/java/de/robv/android/xposed/IXposedHookInitPackageResources.java`
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XposedInit.java` · `initModule`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/IXposedHookZygoteInit.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/IXposedHookZygoteInit.java)
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/IXposedHookLoadPackage.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/IXposedHookLoadPackage.java)
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/IXposedHookInitPackageResources.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/IXposedHookInitPackageResources.java)
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XposedInit.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XposedInit.java) · `initModule`
 > 🟦 legacy 模块 · 模块生命周期的三个入口契约
 
 ## 契约总览

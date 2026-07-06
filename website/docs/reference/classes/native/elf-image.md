@@ -1,7 +1,7 @@
 # 📚 elf_image.cpp
 
-> 📂 `native/include/elf/elf_image.h`
-> 📂 `native/src/elf/elf_image.cpp`
+> 📂 [`native/include/elf/elf_image.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/elf/elf_image.h)
+> 📂 [`native/src/elf/elf_image.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/elf/elf_image.cpp)
 > 🟦 native 模块 · ELF 内存解析与符号查找
 
 ## 类职责

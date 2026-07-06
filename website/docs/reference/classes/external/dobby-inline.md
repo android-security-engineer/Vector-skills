@@ -2,7 +2,7 @@
 
 Dobby 是 Vector 使用的轻量级多平台 inline hook 框架，作为 LSPlant 的 native 函数替换底层。
 
-> 📂 `external/dobby/`（git 子模块，源见 [JingMatrix/Dobby](https://github.com/JingMatrix/Dobby)）
+> 📂 [`external/dobby/`](https://github.com/android-security-engineer/Vector-skills/blob/master/external/dobby/)（git 子模块，源见 [JingMatrix/Dobby](https://github.com/JingMatrix/Dobby)）
 > 📚 external 依赖 · native 核心
 
 ## 职责

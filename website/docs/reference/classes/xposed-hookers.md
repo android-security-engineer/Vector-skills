@@ -1,6 +1,6 @@
 # xposed · hookers 包
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/hookers/`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/hookers/`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hookers/)
 > 🟦 生命周期 Hook 点：各阶段 `XposedInterface.Hooker` 实现
 
 ## 包职责

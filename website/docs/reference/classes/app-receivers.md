@@ -1,7 +1,33 @@
 # app · receivers 包
 
-> 📂 `app/src/main/java/org/lsposed/manager/receivers/`
+> 📂 [`app/src/main/java/org/lsposed/manager/receivers/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/receivers/)
 > 🟦 管理器与 Daemon 服务 Binder 的持有者
+
+## 核心类
+
+| 类 | 职责 | 关键方法 |
+| :--- | :--- | :--- |
+| [`LSPManagerServiceHolder`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/receivers/LSPManagerServiceHolder.java) | 持有 `ILSPManagerService` Binder，监听其死亡并自杀 | `init(IBinder)`、`getService()`、`binderDied()` |
+
+## 类继承结构
+
+```mermaid
+classDiagram
+    class IBinder_DeathRecipient {
+        <<interface>>
+        +binderDied()
+    }
+    class LSPManagerServiceHolder {
+        -static LSPManagerServiceHolder holder
+        -static ILSPManagerService service
+        +static init(IBinder binder)$
+        +static getService()$ ILSPManagerService
+        -linkToDeath(IBinder)
+        +binderDied()
+    }
+    IBinder_DeathRecipient <|.. LSPManagerServiceHolder : implements
+    note for LSPManagerServiceHolder "静态字段全进程共享\ninit() 幂等：holder==null 才创建"
+```
 
 ## 包职责
 
@@ -13,16 +39,28 @@
 | :--- | :--- |
 | [`LSPManagerServiceHolder`](#lspmanagerserviceholder) | 持有 `ILSPManagerService` Binder，监听其死亡并自杀 |
 
+### Binder 生命周期时序
+
 ```mermaid
-graph LR
-    DAEMON["Daemon 进程<br/>ILSPManagerService"]:::core
-    HOLDER["LSPManagerServiceHolder<br/>init(binder)"]:::ui
-    UI["UI / util 层<br/>LSPManagerServiceHolder.getService()"]:::ui
-    DAEMON -- "Binder 传递" --> HOLDER
-    HOLDER -- "静态 getService()" --> UI
-    HOLDER -. "binderDied → System.exit" .-> EXIT["杀死管理器进程"]:::core
-    classDef core fill:#3a2a10,stroke:#e8a838,color:#ffd9b0
-    classDef ui fill:#143a4a,stroke:#4fb3d8,color:#bff0f5
+sequenceDiagram
+    participant DAEMON as Daemon 进程<br/>ILSPManagerService
+    participant ZY as Zygisk 注入器
+    participant HOLDER as LSPManagerServiceHolder
+    participant UI as 管理器 UI/util
+
+    ZY->>HOLDER: init(binder)
+    HOLDER->>HOLDER: linkToDeath(binder, 0)
+    HOLDER->>HOLDER: Stub.asInterface(binder)<br/>存入 static service
+    HOLDER-->>UI: getService() 可用
+    Note over UI,DAEMON: 全 app 经 getService() 走 IPC
+
+    alt Daemon 崩溃
+        DAEMON-->>HOLDER: binderDied()
+        HOLDER->>HOLDER: System.exit(0)
+        HOLDER->>HOLDER: Process.killProcess(getpid())
+    else linkToDeath 即时失败
+        HOLDER->>HOLDER: RemoteException → binderDied()
+    end
 ```
 
 ---
@@ -35,9 +73,10 @@ graph LR
 
 ### 关键设计
 
-- **静态字段持有**：`service` 与 `holder` 都是 `static`，整个进程共享一份。`init()` 仅在 `holder == null` 时创建实例，保证幂等。
-- **`IBinder.DeathRecipient`**：实现 `binderDied()`，Daemon 一旦崩溃即触发。
+- **静态字段持有**：[`service`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/receivers/LSPManagerServiceHolder.java#L31) 与 [`holder`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/receivers/LSPManagerServiceHolder.java#L30) 都是 `static`，整个进程共享一份。[`init()`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/receivers/LSPManagerServiceHolder.java#L33) 仅在 `holder == null` 时创建实例，保证幂等。
+- **`IBinder.DeathRecipient`**：实现 [`binderDied()`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/receivers/LSPManagerServiceHolder.java#L56-L60)，Daemon 一旦崩溃即触发。
 - **激进自杀**：`binderDied()` 里先 `System.exit(0)` 再 `Process.killProcess(Os.getpid())`——双保险。寄生管理器失去与 Daemon 的连接后没有任何独立存活的意义。
+- **linkToDeath 容错**：[`linkToDeath`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/receivers/LSPManagerServiceHolder.java#L48-L54) 捕获 `RemoteException`，若 Binder 已死则直接调 `binderDied()`，避免漏掉死亡事件。
 
 ### 主要方法
 
@@ -59,9 +98,9 @@ public void binderDied()
 
 ### 谁在用
 
-- `LogsFragment`：`LSPManagerServiceHolder.getService().getLogs(zipFd)` 拉取日志 FD 写入 zip。
-- `CompileDialogFragment`：`getService().clearApplicationProfileData(...)` / `performDexOptMode(...)` 触发 dex 优化。
-- `ConfigManager` 也封装了大量经此 Binder 的调用。
+- [`LogsFragment`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/fragment/LogsFragment.java)：`LSPManagerServiceHolder.getService().getLogs(zipFd)` 拉取日志 FD 写入 zip。
+- [`CompileDialogFragment`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/fragment/CompileDialogFragment.java)：`getService().clearApplicationProfileData(...)` / `performDexOptMode(...)` 触发 dex 优化。
+- [`ConfigManager`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ConfigManager.java) 封装了大量经此 Binder 的调用，是全 app 走 IPC 的统一门面。
 
 ## 相关
 

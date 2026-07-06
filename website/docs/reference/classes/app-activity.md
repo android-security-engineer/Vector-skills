@@ -1,6 +1,6 @@
 # app · ui/activity 包
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/activity/`（含 `ui/activity/base/`）
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/activity/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/activity/)（含 [`ui/activity/base/`](https://github.com/android-security-engineer/Vector-skills/blob/master/ui/activity/base/)）
 > 🟦 管理器的 Activity 层：单 Activity 入口 + 主题基类
 
 ## 包职责

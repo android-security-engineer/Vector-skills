@@ -1,6 +1,6 @@
 # daemon · env 包
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/env/`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/env/`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/)
 > 🌐 UNIX domain socket 服务·native 进程监控·dex2oat 劫持
 
 ## 包职责

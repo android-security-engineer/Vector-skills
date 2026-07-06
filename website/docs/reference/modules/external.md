@@ -2,7 +2,7 @@
 
 `external` 目录收纳 Vector 通过 git submodule 引入的第三方依赖。它们是 Vector 的技术基石。
 
-> 目录：`external/` · 形式：git submodule
+> 目录：[`external/`](https://github.com/android-security-engineer/Vector-skills/blob/master/external/) · 形式：git submodule
 
 ## 它解决什么
 

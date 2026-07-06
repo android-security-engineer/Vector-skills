@@ -2,7 +2,7 @@
 
 **libxposed 模块侧**的 API binder。每个被加载的模块通过 `Module.service` 拿到此接口，用于查询框架属性、读写远程偏好、访问远程文件。
 
-> 📂 `services/daemon-service/src/main/aidl/org/lsposed/lspd/service/ILSPInjectedModuleService.aidl`
+> 📂 [`services/daemon-service/src/main/aidl/org/lsposed/lspd/service/ILSPInjectedModuleService.aidl`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/daemon-service/src/main/aidl/org/lsposed/lspd/service/ILSPInjectedModuleService.aidl)
 > 包：`org.lsposed.lspd.service`
 
 ## 方法
@@ -26,7 +26,7 @@ String[] getRemoteFileList();
 | `openRemoteFile` | `ParcelFileDescriptor` | 打开远程文件（模块资产等），返回 fd |
 | `getRemoteFileList` | `String[]` | 列出可用的远程文件路径 |
 
-> 📂 实现：`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/InjectedModuleService.kt`
+> 📂 实现：[`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/InjectedModuleService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/InjectedModuleService.kt)
 > 每个 `InjectedModuleService` 实例绑定单个模块包名（构造时传入 `packageName`），用户隔离按 `Binder.getCallingUid() / PER_USER_RANGE`（100000）解析 userId。
 
 ### getFrameworkProperties

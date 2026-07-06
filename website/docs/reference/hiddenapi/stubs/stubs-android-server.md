@@ -2,7 +2,7 @@
 
 本篇收录不在前三个包里的桩：`com.android.server.*`（系统服务内部）、`com.android.internal.os.*`（Zygote/Binder 内部）、`dalvik.system.*`（运行时）、`xposed.dummy.*`（资源 Hook 动态父类），以及 `android.view`/`android.webkit`/`android.graphics`/`android.ddm`/`sun.*`/`org.xmlpull` 等杂项。
 
-> 📂 `hiddenapi/stubs/src/main/java/` 下多个包
+> 📂 [`hiddenapi/stubs/src/main/java/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/src/main/java/) 下多个包
 > 🏛️ hiddenapi · [stubs 总览](.) · [bridge](../bridge)
 
 ## com.android.internal.os — Zygote / Binder 内部

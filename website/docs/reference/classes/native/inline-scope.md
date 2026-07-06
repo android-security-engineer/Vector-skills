@@ -1,7 +1,7 @@
 # 🧩 Inline Scope（C++）
 
-> 📂 `native/include/core/native_api.h`
-> 📂 `native/src/core/native_api.cpp`
+> 📂 [`native/include/core/native_api.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/core/native_api.h)
+> 📂 [`native/src/core/native_api.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/core/native_api.cpp)
 > 🟦 native 模块 · Dobby inline hook 与 dlopen 拦截
 
 ## 类职责

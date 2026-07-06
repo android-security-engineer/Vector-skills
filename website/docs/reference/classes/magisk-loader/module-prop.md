@@ -2,10 +2,12 @@
 
 `module.prop` 是 Magisk/KernelSU 识别模块的元数据文件，定义身份、版本与 OTA 更新通道。
 
-> 📂 `zygisk/module/module.prop`
+> 📂 [`zygisk/module/module.prop`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/module/module.prop)
 > 📦 magisk-loader 模块 · 模块清单
 
 ## 字段详解
+
+> 占位符替换：`${versionName}` / `${versionCode}` 在 [`module.prop`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/module/module.prop) 模板里是字面量，Gradle 的 zip 打包任务在生成模块 zip 时读取 `build.gradle.kts` 的 `versionName`/`versionCode` 做字符串替换，最终产物 `/data/adb/modules/zygisk_vector/module.prop` 里是替换后的具体数值。
 
 ```properties
 id=zygisk_vector
@@ -64,6 +66,48 @@ graph LR
 | `versionCode` | 与本地 `module.prop` 的 `versionCode` 比较 |
 | `zipUrl` | 新版 zip 下载地址 |
 | `changelog` | 更新日志 Markdown URL |
+
+### OTA 检查时序
+
+```mermaid
+sequenceDiagram
+    participant MM as Magisk Manager
+    participant MP as 本地 module.prop
+    participant GH as GitHub raw<br/>update.json
+
+    MM->>MP: 读取 updateJson URL
+    MP-->>MM: https://.../zygisk.json
+    MM->>GH: GET update.json
+    GH-->>MM: {version,versionCode,zipUrl,changelog}
+    MM->>MM: 远端 versionCode > 本地 versionCode?
+    alt 有更新
+        MM->>GH: GET zipUrl (下载 zip)
+        MM->>GH: GET changelog (展示日志)
+        MM->>MM: 刷入新模块
+    else 已是最新
+        MM->>MM: 跳过
+    end
+```
+
+## 构建期占位符替换流程
+
+```mermaid
+flowchart LR
+    subgraph build ["Gradle 构建期"]
+        BG["build.gradle.kts<br/>versionName/versionCode"]:::vec
+        TPL["zygisk/module.prop<br/>含 \${...} 占位符"]:::vec
+        ZIP["打包任务"]:::vec
+        BG --> ZIP
+        TPL --> ZIP
+        ZIP --> OUT["产物 module.prop<br/>占位符已替换"]:::ok
+    end
+    OUT --> INSTALL["/data/adb/modules/zygisk_vector/module.prop"]:::plain
+    INSTALL --> MM2["Magisk 读取<br/>versionCode / updateJson"]:::vec
+
+    classDef vec fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef ok fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+    classDef plain fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+```
 
 ## 与安装脚本的协作
 

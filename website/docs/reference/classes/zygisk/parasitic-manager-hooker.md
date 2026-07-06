@@ -1,6 +1,6 @@
 # 🦠 ParasiticManagerHooker
 
-> 📂 `zygisk/src/main/kotlin/org/matrix/vector/ParasiticManagerHooker.kt`
+> 📂 [`zygisk/src/main/kotlin/org/matrix/vector/ParasiticManagerHooker.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/kotlin/org/matrix/vector/ParasiticManagerHooker.kt)
 > 🟦 zygisk 模块 · 寄生管理器身份移植
 
 ## 类职责

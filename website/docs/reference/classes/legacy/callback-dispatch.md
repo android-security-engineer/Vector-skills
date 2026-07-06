@@ -1,6 +1,6 @@
 # 🔀 XposedBridge · 回调分发与异常隔离
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XposedBridge.java` · `LegacyApiSupport` 内部类
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XposedBridge.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XposedBridge.java) · `LegacyApiSupport` 内部类
 > 🟦 legacy 模块 · before/after 调用顺序、异常隔离、unhook 语义
 
 ## 类职责

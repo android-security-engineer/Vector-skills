@@ -1,6 +1,6 @@
 # daemon · jni
 
-> 📂 `daemon/src/main/jni/`
+> 📂 [`daemon/src/main/jni/`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/)
 > ⚙️ native C++ 子系统：dex2oat 劫持·logcat 解析·DEX 混淆
 
 ## 概览

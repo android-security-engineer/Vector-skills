@@ -2,7 +2,7 @@
 
 `magisk-loader` 不是代码模块，而是 Vector 作为 **Magisk/KernelSU 模块**的安装元数据与更新通道。
 
-> 目录：`magisk-loader/` · 内容：Shell 脚本 + JSON + Markdown
+> 目录：[`magisk-loader/`](https://github.com/android-security-engineer/Vector-skills/blob/master/magisk-loader/) · 内容：Shell 脚本 + JSON + Markdown
 
 ## 它解决什么
 

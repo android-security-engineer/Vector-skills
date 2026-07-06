@@ -2,7 +2,7 @@
 
 远程偏好变更的**回调接口**。模块经 [`ILSPInjectedModuleService.requestRemotePreferences`](./ilspinjectedmoduleservice#requestremotepreferences) 注册后，偏好变更通过此接口推送。
 
-> 📂 `services/daemon-service/src/main/aidl/org/lsposed/lspd/service/IRemotePreferenceCallback.aidl`
+> 📂 [`services/daemon-service/src/main/aidl/org/lsposed/lspd/service/IRemotePreferenceCallback.aidl`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/daemon-service/src/main/aidl/org/lsposed/lspd/service/IRemotePreferenceCallback.aidl)
 > 包：`org.lsposed.lspd.service`
 
 ## 方法

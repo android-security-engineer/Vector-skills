@@ -1,6 +1,6 @@
 # 🔗 VectorChain
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorChain.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorChain.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorChain.kt)
 > 🟩 xposed 模块 · 现代 hook 递归链状态机
 
 ## 类职责

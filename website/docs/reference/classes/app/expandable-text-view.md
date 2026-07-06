@@ -1,6 +1,6 @@
 # 📝 ExpandableTextView · 文本与 WebView 控件
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/widget/`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/widget/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/widget/)
 > 🟦 app 模块 · 富文本展示控件集
 
 ## 包职责

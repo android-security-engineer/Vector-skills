@@ -1,7 +1,7 @@
 # 🧩 JNI Bridge（C++）
 
-> 📂 `native/include/jni/jni_bridge.h`
-> 📂 `native/include/jni/jni_hooks.h`
+> 📂 [`native/include/jni/jni_bridge.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/jni/jni_bridge.h)
+> 📂 [`native/include/jni/jni_hooks.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/jni/jni_hooks.h)
 > 🟦 native 模块 · native↔Java 桥接的宏与混淆签名工具
 
 ## 类职责

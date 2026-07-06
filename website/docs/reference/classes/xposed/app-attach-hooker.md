@@ -1,6 +1,6 @@
 # 🔗 AppAttachHooker · CrashDumpHooker · DexTrustHooker
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/hookers/`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/hookers/`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hookers/)
 > 🟦 xposed 模块 · 早期 attach、崩溃日志、DEX 信任
 
 ## 包职责

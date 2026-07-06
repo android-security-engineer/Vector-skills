@@ -2,7 +2,7 @@
 
 Vector 调用 Android 非公开（hidden）API 的全部桥接与桩。分 `bridge`（运行时桥接）和 `stubs`（编译期桩）两个子模块。
 
-> 📂 `hiddenapi/bridge/src/main/java/hidden/` · `hiddenapi/stubs/src/main/java/`
+> 📂 [`hiddenapi/bridge/src/main/java/hidden/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/bridge/src/main/java/hidden/) · [`hiddenapi/stubs/src/main/java/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/src/main/java/)
 > 目录：[hiddenapi 模块](../modules/hiddenapi)
 > 语言：Java · 兼容 Android 8.1–17
 

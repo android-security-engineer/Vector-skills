@@ -1,6 +1,6 @@
 # 🎯 ScopeAdapter
 
-> 📂 `app/src/main/java/org/lsposed/manager/adapters/ScopeAdapter.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/adapters/ScopeAdapter.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/adapters/ScopeAdapter.java)
 > 🟦 app 模块 · 作用域列表适配器
 
 ## 类职责

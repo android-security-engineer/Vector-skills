@@ -1,7 +1,7 @@
 # 🧯 VectorDeopter / VectorInlinedCallers
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorDeopter.kt`
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorInlinedCallers.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorDeopter.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorDeopter.kt)
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorInlinedCallers.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorInlinedCallers.kt)
 > 🟩 xposed 模块 · AOT 反优化引擎与内联调用者注册表
 
 ## 类职责

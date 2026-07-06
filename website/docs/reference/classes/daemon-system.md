@@ -1,6 +1,6 @@
 # daemon · system 包
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/system/`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/system/`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/system/)
 > 🛰️ 系统 binder 代理·通知 UI·跨版本兼容扩展
 
 ## 包职责

@@ -1,6 +1,6 @@
 # 📦 dex2oat · wrapper 包装器
 
-> 📂 `dex2oat/src/main/cpp/dex2oat.cpp` · `dex2oat/src/main/cpp/include/`
+> 📂 [`dex2oat/src/main/cpp/dex2oat.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/dex2oat/src/main/cpp/dex2oat.cpp) · [`dex2oat/src/main/cpp/include/`](https://github.com/android-security-engineer/Vector-skills/blob/master/dex2oat/src/main/cpp/include/)
 > 🟦 替换系统 dex2oat 二进制的包装器
 
 ## 职责

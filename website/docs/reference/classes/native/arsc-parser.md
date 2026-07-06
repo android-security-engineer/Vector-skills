@@ -1,7 +1,7 @@
 # 🧩 ARSC Parser（C++）
 
-> 📂 `native/include/framework/android_types.h`
-> 📂 `native/src/jni/resources_hook.cpp`（`PrepareSymbols`）
+> 📂 [`native/include/framework/android_types.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/framework/android_types.h)
+> 📂 [`native/src/jni/resources_hook.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/jni/resources_hook.cpp)（`PrepareSymbols`）
 > 🟦 native 模块 · Android 二进制资源表结构与符号桩
 
 ## 类职责

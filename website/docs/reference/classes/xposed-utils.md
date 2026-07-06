@@ -1,6 +1,6 @@
 # xposed · utils 包
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/utils/`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/utils/`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/utils/)
 > 🟦 模块工具：元数据解析、内存 ClassLoader、jar: 资源处理
 
 ## 包职责

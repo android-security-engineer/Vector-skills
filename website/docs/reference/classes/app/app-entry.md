@@ -1,6 +1,6 @@
 # 🚀 App
 
-> 📂 `app/src/main/java/org/lsposed/manager/App.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/App.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/App.java)
 > 🟦 app 模块 · Application 入口
 
 ## 类职责

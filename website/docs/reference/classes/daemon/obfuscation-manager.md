@@ -1,8 +1,8 @@
 # 🔀 ObfuscationManager
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/utils/ObfuscationManager.kt`
-> 📂 `daemon/src/main/jni/obfuscation.cpp`
-> 📂 `daemon/src/main/jni/obfuscation.h`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/utils/ObfuscationManager.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/ObfuscationManager.kt)
+> 📂 [`daemon/src/main/jni/obfuscation.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/obfuscation.cpp)
+> 📂 [`daemon/src/main/jni/obfuscation.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/jni/obfuscation.h)
 > 🟦 daemon 模块 · DEX 类名/签名随机化
 
 ## 类职责

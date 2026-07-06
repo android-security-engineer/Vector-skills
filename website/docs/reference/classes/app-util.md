@@ -1,6 +1,6 @@
 # app · util 包
 
-> 📂 `app/src/main/java/org/lsposed/manager/util/`（含 `util/chrome/` 子包）
+> 📂 [`app/src/main/java/org/lsposed/manager/util/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/util/)（含 [`app/src/main/java/org/lsposed/manager/util/chrome/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/util/chrome/) 子包）
 > 🟦 管理器的工具集：模块枚举、备份、主题、更新、导航、快捷方式、Glide、网络、无障碍
 
 ## 包职责

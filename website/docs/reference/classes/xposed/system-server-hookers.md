@@ -1,6 +1,6 @@
 # 🖥️ SystemServerHookers · 系统服务 hook
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/hookers/SystemServerHookers.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/hookers/SystemServerHookers.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hookers/SystemServerHookers.kt)
 > 🟦 xposed 模块 · system_server 启动拦截与去优化
 
 ## 类职责

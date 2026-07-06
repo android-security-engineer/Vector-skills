@@ -2,8 +2,8 @@
 
 `InjectedModuleService` 实现 `ILSPInjectedModuleService`，是注入到模块进程内的服务端，提供框架属性、远程偏好与远程文件访问。
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/InjectedModuleService.kt`
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ModuleService.kt`（推模式 binder 投递）
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/InjectedModuleService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/InjectedModuleService.kt)
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ModuleService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/ipc/ModuleService.kt)（推模式 binder 投递）
 > 📡 services AIDL · `ILSPInjectedModuleService`
 
 ## 职责

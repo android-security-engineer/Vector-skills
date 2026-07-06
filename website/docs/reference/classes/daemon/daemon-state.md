@@ -1,8 +1,8 @@
 # 🧬 DaemonState · Database · ModuleDatabase
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/data/DaemonState.kt`
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/data/Database.kt`
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/data/ModuleDatabase.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/data/DaemonState.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/data/DaemonState.kt)
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/data/Database.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/data/Database.kt)
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/data/ModuleDatabase.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/data/ModuleDatabase.kt)
 > 🟦 daemon 模块 · 状态容器与 SQLite schema
 
 ## 类职责

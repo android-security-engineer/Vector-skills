@@ -2,7 +2,7 @@
 
 `services` 模块定义 Vector 跨进程通信的 **AIDL 接口契约**。它分三个子模块，纯接口定义，无实现。
 
-> 目录：`services/` · 语言：AIDL + 少量 Java · 子模块：`daemon-service` · `manager-service` · `libxposed`（git 子模块）
+> 目录：[`services/`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/) · 语言：AIDL + 少量 Java · 子模块：`daemon-service` · `manager-service` · `libxposed`（git 子模块）
 
 ## 它解决什么
 

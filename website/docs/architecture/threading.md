@@ -60,6 +60,47 @@ graph TD
     classDef core fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
 ```
 
+### 协程作用域与异常隔离
+
+所有后台协程共用 [VectorDaemon.kt](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorDaemon.kt) 的单例作用域：
+
+```kotlin
+val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + exceptionHandler)
+```
+
+- `Dispatchers.IO`：复用 JVM 的共享后台线程池，I/O 密集型任务（DB 查询、文件读写）的默认归宿。
+- `SupervisorJob`：单个子协程失败不会取消兄弟协程——`LogcatMonitor`、`Dex2OatServer`、`CliSocketServer` 互不影响。
+- `CoroutineExceptionHandler`：未捕获异常只记日志，不让 Daemon 进程崩。外加进程级 `Thread.setDefaultUncaughtExceptionHandler` 兜底，崩了就 `exitProcess(1)` 让 init 重拉。
+
+```text
+                       VectorDaemon.scope
+              CoroutineScope(Dispatchers.IO + SupervisorJob + handler)
+                               │
+        ┌──────────────┬───────┴────────┬───────────────┬──────────────┐
+        ▼              ▼                ▼               ▼              ▼
+  LogcatMonitor   Dex2OatServer   CliSocketServer   ConfigCache    dumpProps
+   .start()         .start()        .start()        init{}         AndDmesg
+        │              │                │               │              │
+        ▼              ▼                ▼               ▼              │
+  runLogcat()     runSocketLoop()   handleClient()  for(req in      getprop
+  (native 阻塞)    (accept 循环)     (per 连接)      channel){        dmesg
+                                                    performCacheUpdate}
+   │ SupervisorJob：任一失败不影响兄弟
+   │ CoroutineExceptionHandler：Log.e 后吞掉
+   │ 进程级 UncaughtExceptionHandler：exitProcess(1)
+```
+
+> [!TIP]
+> | 线程/协程 | 实际线程名 / 调度器 | 入口 |
+> | :--- | :--- | :--- |
+> | 主 Looper | `main`（`THREAD_PRIORITY_FOREGROUND`） | `VectorDaemon.main` → `Looper.loop()` |
+> | CLI 监听 | `VectorCliListener`（`MIN_PRIORITY`） | `CliSocketServer.start` |
+> | 配置写 | `Dispatchers.IO` 池（`DefaultDispatcher-worker-N`） | `ConfigCache` init 块的 `for` 循环 |
+> | logcat | `Dispatchers.IO` 协程 + native 线程 | `LogcatMonitor.start` → `runLogcat()` |
+> | dex2oat socket | `Dispatchers.IO` 协程 | `Dex2OatServer.start` → `runSocketLoop()` |
+> | dex2oat SELinux 观察器 | `FileObserver` 内部线程 | `selinuxObserver.startWatching()` |
+> | dumpProps/dmesg | `Dispatchers.IO` 协程 | `LogcatMonitor.init` → `dumpPropsAndDmesg()` |
+
 ### 为什么这样分
 
 - **读写在各自线程域**：Binder 线程池绝不能阻塞等数据库，否则池耗尽。读直接拿不可变引用，写走后台协程串行化。详见 [Daemon 并发模型](./concurrency)。
@@ -103,6 +144,35 @@ system_server 的标准 Binder 线程池负责处理事务。Vector 在此之上
 - 中转逻辑轻量（转发 + parcel 读写），不阻塞。
 - 其余事务码原样放行，对系统无影响。
 
+### system_server ↔ Daemon 的线程交互
+
+Daemon 主动投递主 Binder 时，事务在 system_server 的某个 Binder 线程上被 `BridgeService.execTransact` 截获；此后应用发 `GET_BINDER`，system_server 的另一个 Binder 线程调 Daemon 的 `requestApplicationService`（这次是跨进程 Binder，落在 Daemon 的 Binder 线程池）：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant VD as Daemon 主线程
+    participant SS1 as system_server Binder 线程 A
+    participant BS as BridgeService
+    participant DBP as Daemon Binder 线程池
+    participant APP as 应用 Binder 线程
+
+    VD->>SS1: transact(_VEC, SEND_BINDER)
+    SS1->>BS: execTransact (JNI hook)
+    BS->>BS: receiveFromBridge 缓存 IDaemonService
+    BS-->>VD: reply
+    Note over APP: 应用启动
+    APP->>SS1: transact(_VEC, GET_BINDER)
+    SS1->>BS: execTransact
+    BS->>DBP: service.requestApplicationService (跨进程)
+    DBP->>DBP: 读 DaemonState 无锁
+    DBP-->>BS: ApplicationService Binder
+    BS-->>APP: reply 写回 Binder
+```
+
+> [!TIP]
+> `BridgeService` 用 `Binder_allowBlocking(binder)` 给 Daemon Binder 加阻塞许可——`Main.forkCommon` 的同步 fork 路径里调它不会被 Binder 的"非阻塞调用方"检查卡住。Daemon 侧的 [`SystemService`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/system/SystemBinders.kt) 委托用 `@Volatile instance` + `synchronized` + `DeathRecipient` 清缓存，保证系统服务死了能重查、不死时只查一次。
+
 ## 目标应用线程
 
 应用进程内，框架在主线程或 Binder 线程上引导，模块 Hook 回调通常在被 Hook 方法调用的线程上执行。
@@ -112,6 +182,26 @@ system_server 的标准 Binder 线程池负责处理事务。Vector 在此之上
 | 框架引导（`Main.forkCommon`） | 进程初始化线程 |
 | 模块 `onCreate` / Hook 注册 | 通常主线程 |
 | Hook 回调 | 被Hook方法调用方的线程 |
+
+native 注入发生在 Zygisk 的 `postAppSpecialize`，运行在 fork 后的子进程主线程。此时尚未执行 `Application.onCreate`——Vector 在这里同步拉 Binder、取 DEX、装 ART hook，全部完成后才把控制权交回 Android 框架。这条路径在 [module.cpp](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/cpp/module.cpp) 的 `postAppSpecialize`，关键调用链：
+
+```mermaid
+graph TD
+    POST["postAppSpecialize (主线程)"]:::core
+    POST --> RB["IPCBridge.RequestAppBinder"]:::step
+    RB --> FD["FetchFrameworkDex + FetchObfuscationMap"]:::step
+    FD --> LD["LoadDex (InMemoryDexClassLoader)"]:::step
+    LD --> ART["InitArtHooker / InitHooks"]:::step
+    ART --> SEC["SetupEntryClass (查混淆入口类)"]:::step
+    SEC --> FC["FindAndCall forkCommon"]:::step
+    FC --> UL["SetAllowUnload(false) 防卸载"]:::out
+    classDef core fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef step fill:#143a4a,stroke:#4fb3d8,color:#cfeefb
+    classDef out fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+```
+
+> [!TIP]
+> `lsplant::InitInfo` 的 `inline_hooker`/`inline_unhooker` 走 `HookInline`/`UnhookInline`（Dobby 风格），`art_symbol_resolver` 走 `ElfSymbolCache::GetArt()`——LSPlant 的 ART 符号解析在 native 线程上做惰性缓存，线程安全。`generated_class_name = "Vector_"`、`generated_source_name = "Dobby"` 是 LSPlant 生成 trampoline 类的命名前缀，避免与业务类撞名。
 
 ::: warning 模块线程安全
 模块的 Hook 回调可能在任意线程执行（取决于被 Hook 方法在哪个线程被调用）。模块若维护共享状态，必须自行处理同步——框架不替你保证。

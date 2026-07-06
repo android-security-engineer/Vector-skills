@@ -29,10 +29,39 @@ graph TD
     classDef out fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
 ```
 
-- **`VectorHookBuilder`**：实现 `HookBuilder` API。校验目标 `Executable`，把模块的 `Hooker`、`priority`、`ExceptionMode` 打包成 `VectorHookRecord`，经 JNI 注册到 native。
-- **`VectorNativeHooker`**：JNI trampoline 目标。被 Hook 方法执行时，C++ 层调用此类的 `callback(Array<Any?>)`。它从 native registry 取出活动 hook（现代与 legacy 都有）作为 global `jobject` 引用，构造根 `VectorChain` 并启动执行。
-- **`VectorChain`**：实现递归 `proceed()` 状态机。
-  - **异常处理**：实现 `ExceptionMode` 逻辑。`PROTECTIVE` 模式下，若拦截器在调用 `proceed()` **之前**抛异常，链跳过该拦截器；若在 `proceed()` **之后**抛异常，链捕获异常并恢复缓存的下游结果/throwable，保护宿主进程。
+`ExceptionMode` 决定拦截器崩溃时的处置策略：
+
+```mermaid
+stateDiagram-v2
+    [*] --> Intercepting: hooker.intercept(chain)
+    Intercepting --> CallingProceed: 调 chain.proceed()
+    Intercepting --> ThrewBefore: proceed 前抛异常
+    CallingProceed --> ThrewAfter: proceed 后抛异常(自身)
+    CallingProceed --> Propagating: 下游异常冒泡
+
+    ThrewBefore --> SkipHooker: PROTECTIVE/DEFAULT
+    SkipHooker --> [*]: 跳过该 hooker, 继续 chain
+    ThrewBefore --> [*]: PASSTHROUGH → 抛出
+    ThrewAfter --> RestoreDownstream: PROTECTIVE/DEFAULT
+    RestoreDownstream --> [*]: 恢复 downstreamResult/Throwable
+    ThrewAfter --> [*]: PASSTHROUGH → 抛出
+    Propagating --> [*]: 引用相等, 原样抛出
+```
+
+- **`VectorHookBuilder`**（[VectorNativeHooker.kt](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorNativeHooker.kt)）：实现 `HookBuilder` API。在 `intercept(hooker)` 里做三项校验后，把 `Hooker` / `priority` / `ExceptionMode` 打包成 `VectorHookRecord`，调 `HookBridge.hookMethod(true, origin, VectorNativeHooker::class.java, priority, record)` 注册到 native。校验规则：
+  - 目标 `Executable` 不能是 `abstract`（无实现可替换）；
+  - 目标不能是框架自身 ClassLoader 里的内部方法（防自指）；
+  - 不能 hook `Method.invoke` 本身（会引发无限递归）。
+- **`VectorNativeHooker`**：JNI trampoline 目标。被 Hook 方法执行时，C++ 层（[hook_bridge.cpp](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/jni/hook_bridge.cpp) 的 `lsplant::Hook` 把 `entry_point` 指过来）调用此类的 `callback(Array<Any?>)`。流程：
+  1. 区分静态/实例：静态时 `args[0]` 是首个参数，实例时 `args[0]` 是 `this`。
+  2. 调 `HookBridge.callbackSnapshot(VectorHookRecord::class, method)` **一次性取快照**——返回 `Object[2][]`，下标 0 是 modern hook 数组、下标 1 是 legacy hook 数组。快照在 `JNIMonitor(backup)` 锁保护下拷出，避免执行期间注册表变动。
+  3. 两条链都空时走快速路径直接 `invokeOriginalSafely`。
+  4. 否则构造 `terminal` 闭包：若存在 legacy hook 且 `VectorBootstrap.delegate` 非空，则委托给 `LegacyFrameworkDelegate.processLegacyHook`（它会在原方法外再套 legacy 回调链）；否则直接调原方法。
+  5. 以 terminal 为底，构造根 `VectorChain` 并 `proceed()`。
+  6. 返回前做类型校验：返回值与 `method.returnType` 不匹配（含基本类型装箱兼容性检查）会记录日志，基本类型返回 null 直接抛 NPE。
+- **`VectorChain`**（[VectorChain.kt](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorChain.kt)）：递归 `proceed()` 状态机。每个 chain 节点持有一个 `hookIndex`，`proceed` 时若未到链尾就构造 `hookIndex+1` 的下一级 chain 并调 `record.hooker.intercept(nextChain)`；到链尾则触发 `terminal`（原方法 + legacy 链）。
+  - **状态缓存**：`executeDownstream` 把下游结果/异常存进 `downstreamResult` / `downstreamThrowable`，供父节点在 post-proceed 阶段崩溃时恢复。
+  - **ExceptionMode**：`PASSTHROUGH` 直接抛出；`PROTECTIVE`/`DEFAULT` 下——拦截器在 `proceed()` **之前**抛异常，跳过该拦截器继续链；在 `proceed()` **之后**抛异常，捕获并恢复下游缓存的结果/throwable，保护宿主进程不被破坏。判断依据是 `t === nextChain.downstreamThrowable`（引用相等，确认异常源自下游而非拦截器自身）。
 
 ### 2. 调用系统
 
@@ -52,8 +81,9 @@ graph TD
 
 模块严格从内存执行，使用隔离的 ClassLoader，确保零磁盘足迹、对反作弊机制最大隐蔽。
 
-- 模块 APK 被加载进 `SharedMemory` (ashmem) 以绕过 Java 堆限制。ART 摄取 DEX 缓冲区后，ashmem 立即解除映射，防内存泄漏、不留残余文件描述符。
-- `VectorModuleClassLoader` **独占**挂到 Xposed 框架的 classloader 分支，防止目标应用经反射或 `ClassLoader.getParent()` 链式遍历发现模块。
+- 模块 APK 被加载进 `SharedMemory` (ashmem) 以绕过 Java 堆限制。[VectorModuleClassLoader.loadApk](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorModuleClassLoader.kt) 用 `parallelStream` 把每个 `SharedMemory` `mapReadOnly()` 成 `ByteBuffer`，喂给 `ByteBufferDexClassLoader`（hidden API）。ART 摄取 DEX 缓冲区后，**立即** `SharedMemory.unmap` + `close`——防内存泄漏、不留残余 FD。
+- `VectorModuleClassLoader` 按系统版本分两个构造器（Android Q+ 走带 `librarySearchPath` 的重载，以下走另一个），并重写 `loadClass`：先 `findLoadedClass`，再委托 `Any::class.java.classLoader`（boot loader）加载，最后才 `findClass`/`parent.loadClass`——这让它**独占**挂在 Xposed 框架的 classloader 分支，目标应用经反射或 `ClassLoader.getParent()` 链式遍历找不到模块。
+- `findLibrary` 自行扫描 `nativeLibraryDirs`（含 `java.library.path` 系统目录），支持 `path!/sub` 形式的 APK 内 `.so`（要求 `ZipEntry.STORED` 不压缩），从而不依赖系统 `nativeLibraryDirectories` 暴露模块路径。
 - `VectorURLStreamHandler` 拦截标准 `jar:` 请求，从模块路径 native 读取资产与资源，不触发 Android 全局 `JarFile` 缓存，防止 OS 级文件锁。
 
 ```mermaid

@@ -2,7 +2,7 @@
 
 `native` 库提供 Android OS 的底层 hook 与修改能力。它不是独立应用，而是一组设计为被更大加载机制（如 Zygisk 模块）集成的**静态库 `libnative.a`**。详见 [架构 · Native 原生库](../../architecture/native)。
 
-> 目录：`native/` · 语言：C++ · 构建：CMake（静态库）
+> 目录：[`native/`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/) · 语言：C++ · 构建：CMake（静态库）
 
 ## 设计哲学
 

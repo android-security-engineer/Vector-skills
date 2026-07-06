@@ -1,6 +1,6 @@
 # xposed · hooks 包
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/hooks/`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/hooks/`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/)
 > 🟦 Hook 引擎：拦截器链、JNI trampoline、调用系统
 
 ## 包职责

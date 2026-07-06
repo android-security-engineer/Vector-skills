@@ -1,6 +1,6 @@
 # 📞 HiddenApiBridge · 方法调用桥
 
-> 📂 `hiddenapi/bridge/src/main/java/hidden/HiddenApiBridge.java`
+> 📂 [`hiddenapi/bridge/src/main/java/hidden/HiddenApiBridge.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/bridge/src/main/java/hidden/HiddenApiBridge.java)
 > 🟦 hiddenapi · bridge · 包：`hidden`
 > 🏗️ 编译期依赖 stubs（`compileOnly`），运行时由真实 Android 框架类遮蔽桩
 

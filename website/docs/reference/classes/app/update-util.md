@@ -1,6 +1,6 @@
 # 🔄 UpdateUtil · 更新检查
 
-> 📂 `app/src/main/java/org/lsposed/manager/util/UpdateUtil.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/util/UpdateUtil.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/util/UpdateUtil.java)
 > 🟦 app 模块 · 远端版本拉取与安装包预下载
 
 ## 类职责

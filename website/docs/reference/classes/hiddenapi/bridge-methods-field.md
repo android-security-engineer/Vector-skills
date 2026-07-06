@@ -1,7 +1,7 @@
 # 🔑 HiddenApiBridge · 字段访问桥
 
-> 📂 `hiddenapi/bridge/src/main/java/hidden/HiddenApiBridge.java`
-> 📂 `hiddenapi/stubs/src/main/java/android/content/pm/ApplicationInfo.java`（桩）
+> 📂 [`hiddenapi/bridge/src/main/java/hidden/HiddenApiBridge.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/bridge/src/main/java/hidden/HiddenApiBridge.java)
+> 📂 [`hiddenapi/stubs/src/main/java/android/content/pm/ApplicationInfo.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/src/main/java/android/content/pm/ApplicationInfo.java)（桩）
 > 🟦 hiddenapi · bridge · 包：`hidden`
 
 ## 本篇范围

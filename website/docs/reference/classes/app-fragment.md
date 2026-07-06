@@ -1,6 +1,6 @@
 # app · ui/fragment 包
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/fragment/`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/fragment/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/fragment/)
 > 🟦 管理器的各功能页面（Fragment）
 
 ## 包职责

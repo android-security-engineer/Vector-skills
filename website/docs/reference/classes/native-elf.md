@@ -1,6 +1,6 @@
 # 🔍 native · elf 包
 
-> 📂 `native/include/elf/` · `native/src/elf/`
+> 📂 [`native/include/elf/`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/elf/) · [`native/src/elf/`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/elf/)
 > 🟦 内存 ELF 解析与符号缓存
 
 ## 包职责

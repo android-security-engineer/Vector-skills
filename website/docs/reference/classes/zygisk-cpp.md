@@ -1,6 +1,6 @@
 # 🧬 zygisk · cpp 包
 
-> 📂 `zygisk/src/main/cpp/`（含 `include/`）
+> 📂 [`zygisk/src/main/cpp/`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/cpp/)（含 [`include/`](https://github.com/android-security-engineer/Vector-skills/blob/master/include/)）
 > 🟦 Zygisk 子系统的 Native 层
 
 ## 包职责

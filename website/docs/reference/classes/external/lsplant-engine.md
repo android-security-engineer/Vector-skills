@@ -2,7 +2,7 @@
 
 LSPlant 是 Vector 的**核心依赖**，实现 Android Runtime（ART）上的 Java 方法 Hook。Vector 通过其 C++20 Hook DSL 完成全部方法拦截与反优化。
 
-> 📂 `external/lsplant/`（git 子模块，源见 [JingMatrix/LSPlant](https://github.com/JingMatrix/LSPlant)）
+> 📂 [`external/lsplant/`](https://github.com/android-security-engineer/Vector-skills/blob/master/external/lsplant/)（git 子模块，源见 [JingMatrix/LSPlant](https://github.com/JingMatrix/LSPlant)）
 > 📚 external 依赖 · native 核心
 
 ## 在 Vector 中的角色

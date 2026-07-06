@@ -1,6 +1,6 @@
 # 🧩 Resource Rewriter（C++）
 
-> 📂 `native/src/jni/resources_hook.cpp`（`rewriteXmlReferencesNative`）
+> 📂 [`native/src/jni/resources_hook.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/jni/resources_hook.cpp)（`rewriteXmlReferencesNative`）
 > 🟦 native 模块 · 二进制 XML 资源引用重写引擎
 
 ## 类职责

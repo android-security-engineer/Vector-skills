@@ -1,6 +1,6 @@
 # 🛰️ VectorService
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/VectorService.kt)
 > 🟦 daemon 模块 · `IDaemonService` 的主实现
 
 ## 类职责

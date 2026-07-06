@@ -2,7 +2,7 @@
 
 Vector 跨进程通信的全部 **AIDL 接口契约**。源码位于 `services` 模块的两个子模块，纯接口定义，实现散落在 [daemon](../modules/daemon) 与 [app](../modules/app)。
 
-> 📂 `services/daemon-service/src/main/aidl/` · `services/manager-service/src/main/aidl/`
+> 📂 [`services/daemon-service/src/main/aidl/`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/daemon-service/src/main/aidl/) · [`services/manager-service/src/main/aidl/`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/manager-service/src/main/aidl/)
 > 语言：AIDL
 
 ## 接口清单

@@ -1,6 +1,6 @@
 # ⚙️ Dex2OatServer
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/env/Dex2OatServer.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/env/Dex2OatServer.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/env/Dex2OatServer.kt)
 > 🟦 daemon 模块 · dex2oat 包装器与 SELinux 自愈
 
 ## 类职责

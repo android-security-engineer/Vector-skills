@@ -1,6 +1,6 @@
 # 📋 VectorMetaDataReader · APK 元数据
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorMetaDataReader.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorMetaDataReader.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorMetaDataReader.kt)
 > 🟦 xposed 模块 · 直接解析 AndroidManifest 的 meta-data
 
 ## 类职责

@@ -1,6 +1,6 @@
 # 🎯 VectorNativeHooker / VectorHookBuilder
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorNativeHooker.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorNativeHooker.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/VectorNativeHooker.kt)
 > 🟩 xposed 模块 · JNI trampoline 与 hook 注册构造器
 
 ## 类职责

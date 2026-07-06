@@ -2,7 +2,7 @@
 
 Vector 模块**不提供** `post-fs-data.sh`。本文说明这一设计选择及其替代方案。
 
-> 📂 `zygisk/module/` · 无此文件
+> 📂 [`zygisk/module/`](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/module/) · 无此文件
 > 📦 magisk-loader 模块 · 早期阶段
 
 ## 职责

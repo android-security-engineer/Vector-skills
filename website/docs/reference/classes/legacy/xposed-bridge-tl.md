@@ -1,6 +1,6 @@
 # 🧵 XposedBridge · 内部 ThreadLocal 与回调队列
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XposedBridge.java`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XposedBridge.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XposedBridge.java)
 > 🟦 legacy 模块 · hook 回调存储与线程状态的实现演进
 
 ## 类职责（本篇聚焦内部状态管理）

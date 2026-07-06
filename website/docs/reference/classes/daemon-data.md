@@ -1,6 +1,6 @@
 # daemon · data 包
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/data/`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/data/`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/data/)
 > 🗄️ 状态缓存·SQLite schema·偏好差分更新·模块文件系统
 
 ## 包职责

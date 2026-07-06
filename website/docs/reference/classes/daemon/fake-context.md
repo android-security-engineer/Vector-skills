@@ -1,6 +1,6 @@
 # 🎭 FakeContext
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/utils/FakeContext.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/utils/FakeContext.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/utils/FakeContext.kt)
 > 🟦 daemon 模块 · 无 Application 的伪造上下文
 
 ## 类职责

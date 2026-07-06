@@ -1,6 +1,6 @@
 # 🚀 XposedInit
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XposedInit.java`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XposedInit.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XposedInit.java)
 > 🟦 legacy 模块 · 模块加载与资源 hook 入口
 
 ## 类职责

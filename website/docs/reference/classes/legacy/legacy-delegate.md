@@ -1,6 +1,6 @@
 # 🔁 LegacyDelegateImpl
 
-> 📂 `legacy/src/main/java/org/matrix/vector/legacy/LegacyDelegateImpl.java`
+> 📂 [`legacy/src/main/java/org/matrix/vector/legacy/LegacyDelegateImpl.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/org/matrix/vector/legacy/LegacyDelegateImpl.java)
 > 🟦 legacy 模块 · 现代↔legacy 翻译边界
 
 ## 类职责

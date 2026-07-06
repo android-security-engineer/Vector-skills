@@ -1,6 +1,6 @@
 # 📡 VectorServiceClient · Daemon 客户端
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorServiceClient.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorServiceClient.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorServiceClient.kt)
 > 🟦 xposed 模块 · 应用进程侧的 `ILSPApplicationService` 单例代理
 
 ## 类职责

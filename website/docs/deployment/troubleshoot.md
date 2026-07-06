@@ -2,7 +2,7 @@
 
 文档站部署与本地预览的常见故障及解决方法。
 
-> 📂 `website/docs/.vitepress/config.ts` · `website/package.json`
+> 📂 [`website/docs/.vitepress/config.ts`](https://github.com/android-security-engineer/Vector-skills/blob/master/website/docs/.vitepress/config.ts) · [`website/package.json`](https://github.com/android-security-engineer/Vector-skills/blob/master/website/package.json)
 > 🚀 deployment 运维
 
 ## 排错速查

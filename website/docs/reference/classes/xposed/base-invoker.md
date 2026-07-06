@@ -1,6 +1,6 @@
 # ⚙️ BaseInvoker · 调用系统基类
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/hooks/BaseInvoker.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/hooks/BaseInvoker.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hooks/BaseInvoker.kt)
 > 🟦 xposed 模块 · `Invoker` 调用系统的核心实现
 
 ## 类职责

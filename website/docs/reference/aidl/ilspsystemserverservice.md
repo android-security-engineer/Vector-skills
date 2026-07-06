@@ -2,7 +2,7 @@
 
 **system_server 内框架**专用的服务接口。结构与 `IDaemonService` 中请求应用服务的部分相似，但面向 system_server 进程。
 
-> 📂 `services/daemon-service/src/main/aidl/org/lsposed/lspd/service/ILSPSystemServerService.aidl`
+> 📂 [`services/daemon-service/src/main/aidl/org/lsposed/lspd/service/ILSPSystemServerService.aidl`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/daemon-service/src/main/aidl/org/lsposed/lspd/service/ILSPSystemServerService.aidl)
 > 包：`org.lsposed.lspd.service`
 
 ## 方法

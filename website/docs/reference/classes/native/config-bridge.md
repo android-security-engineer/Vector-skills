@@ -1,8 +1,8 @@
 # 🧩 Config Bridge（C++）
 
-> 📂 `native/include/core/config_bridge.h`
-> 📂 `native/src/core/context.cpp`（实例化）
-> 📂 `native/include/jni/jni_bridge.h`（消费方 `GetNativeBridgeSignature`）
+> 📂 [`native/include/core/config_bridge.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/core/config_bridge.h)
+> 📂 [`native/src/core/context.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/core/context.cpp)（实例化）
+> 📂 [`native/include/jni/jni_bridge.h`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/include/jni/jni_bridge.h)（消费方 `GetNativeBridgeSignature`）
 > 🟦 native 模块 · native 侧配置缓存（混淆表）
 
 ## 类职责

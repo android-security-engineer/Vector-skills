@@ -16,6 +16,54 @@ graph TD
     classDef goal fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
 ```
 
+## 框架 DEX 的内存加载：LoadDex
+
+框架 DEX（`framework/lspd.dex`）由 Daemon 经 SharedMemory FD 交付，native 侧 [VectorModule::LoadDex](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/src/main/cpp/module.cpp) 把它喂给 ART。核心是 `DirectByteBuffer` + `InMemoryDexClassLoader` 的组合：
+
+```mermaid
+graph TD
+    FD["dex_fd, dex_size<br/>来自 FetchFrameworkDex"]:::in
+    FD --> PRE["PreloadedDex(dex_fd, dex_size)<br/>mmap 映射"]:::step
+    PRE --> BB["NewDirectByteBuffer(dex.data, dex.size)<br/>直接缓冲, 不拷贝"]:::def
+    BB --> SCL["getSystemClassLoader()<br/>作为 parent"]:::step
+    SCL --> IMCL["new InMemoryDexClassLoader<br/>(ByteBuffer, parent)"]:::def
+    IMCL --> ART["ART 摄取 DEX 进内存"]:::step
+    ART --> GREF["NewGlobalRef(inject_class_loader_)<br/>钉住防 GC"]:::step
+    ART --> CLOSE["close(dex_fd)<br/>mmap 已复制, FD 可关"]:::step
+    classDef in fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef step fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef def fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+```
+
+关键点：
+
+- `env->NewDirectByteBuffer(dex.data(), dex.size())` 用 JNI 直接缓冲区包裹 mmap 出来的 native 指针，**零拷贝**——不把 DEX 内容复制进 Java 堆。ART 的 `InMemoryDexClassLoader` 直接从这个缓冲区摄取 DEX。
+- parent ClassLoader 是 `getSystemClassLoader()`，框架 ClassLoader 挂在系统 ClassLoader 之下，与应用 `PathClassLoader` **并列**而非串联——这是隔离边界。
+- `NewGlobalRef` 钉住 ClassLoader 防止 GC 回收，因为后续 `SetupEntryClass` 与 `FindAndCall` 都要靠它。
+- `close(dex_fd)` 在 `PreloadedDex` 析构后执行——mmap 映射已把内容复制进 ART 的内部结构，FD 可安全关闭。
+
+## lspd.dex 的构建产物分支
+
+`framework/lspd.dex` 不是源码里现成的文件，而是 Gradle 在 [zygisk/build.gradle.kts](https://github.com/android-security-engineer/Vector-skills/blob/master/zygisk/build.gradle.kts) 的 `prepareModuleFiles` 任务里按构建类型**从不同中间产物改名**而来：
+
+```mermaid
+graph TD
+    SRC["zygisk Kotlin 源码"]:::in
+    SRC --> R8{"variant"}
+    R8 -->|release| REL["minifyReleaseWithR8<br/>代码收缩 + 混淆"]:::def
+    R8 -->|debug| DBG["mergeDexDebug<br/>仅合并, 不收缩"]:::step
+    REL --> DEX["classes.dex"]
+    DBG --> DEX
+    DEX --> REN["rename → framework/lspd.dex"]:::step
+    REN --> ZIP["打包进 Magisk zip"]:::ok
+    classDef in fill:#1a2030,stroke:#6b7689,color:#cdd6e3
+    classDef def fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef step fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
+    classDef ok fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+```
+
+release 走 R8（`intermediates/dex/release/minifyReleaseWithR8`），开启代码收缩与混淆，DEX 更小、特征更少；debug 走 `mergeDexDebug`，仅合并多 DEX 不收缩，便于调试。两者最终都 `rename("classes.dex", "lspd.dex")` 落入 `framework/` 目录。`lspd.dex` 这个名字是 LSPosed 时代延续的命名，不代表内容是 LSPosed——它是 Vector 框架 Kotlin 层的引导 DEX。
+
 ## VectorModuleClassLoader：私有分支隔离
 
 标准 Android 用 `PathClassLoader` 加载 APK，挂在应用 classpath 链上。模块若也走这条路，目标应用经 `ClassLoader.getParent()` 链式反射就能遍历到模块 ClassLoader，发现模块存在。
@@ -39,18 +87,31 @@ graph TD
 
 模块 APK 被加载进 `SharedMemory`（ashmem）以绕过 Java 堆限制。C++ 层把 FD 包成 `DirectByteBuffer`，初始化 `InMemoryDexClassLoader` 摄取 DEX。关键一步：**ART 摄取完 DEX 缓冲区后，ashmem 立即解除映射**，防内存泄漏、不留残余文件描述符。
 
+模块级加载走的是 `ByteBufferDexClassLoader`（框架私有 hidden API），不是 `InMemoryDexClassLoader`——因为模块可能有多个 DEX（`classes.dex` + `classes2.dex` + ...），需用 `ByteBuffer[]` 数组。[VectorModuleClassLoader.loadApk](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/utils/VectorModuleClassLoader.kt) 把 `List<SharedMemory>` 全部 `mapReadOnly()` 成 `ByteBuffer[]` 喂给 `ByteBufferDexClassLoader`，构造完成后立即 `SharedMemory.unmap` + `close`：
+
 ```mermaid
-graph LR
-    A["模块 APK"]:::in --> SM["SharedMemory (ashmem)"]:::step
-    SM --> IM["InMemoryDexClassLoader"]:::step
-    IM --> U1["ART 摄取 DEX 完成"]:::step
-    U1 --> U2["ashmem 立即解除映射"]:::def
-    U2 --> OUT["模块代码常驻内存<br/>无文件、无 FD 残留"]:::ok
-    classDef in fill:#1a2030,stroke:#6b7689,color:#cdd6e3
-    classDef step fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
-    classDef def fill:#0e3a36,stroke:#3dd8c8,color:#bff5ec
-    classDef ok fill:#1a3a1a,stroke:#5cd980,color:#bfffd0
+sequenceDiagram
+    autonumber
+    participant MM as VectorModuleManager
+    participant VMC as VectorModuleClassLoader
+    participant SM as SharedMemory
+    participant BB as ByteBuffer
+    participant ART as ART Runtime
+
+    MM->>SM: dexes (List<SharedMemory>)
+    MM->>VMC: loadApk(apk, dexes, libPath, parent)
+    VMC->>BB: parallelStream mapReadOnly() 每个DEX
+    Note over VMC,BB: 构造 ByteBuffer[] 数组
+    VMC->>ART: new ByteBufferDexClassLoader(buffers, parent)
+    ART->>ART: 摄取所有 DEX 进内存
+    VMC->>BB: parallelStream SharedMemory.unmap(it)
+    VMC->>SM: parallelStream it.close()
+    Note over VMC: ashmem 映射全部解除<br/>FD 全部关闭<br/>模块代码常驻 ART 内部结构
 ```
+
+`mapReadOnly` 而非 `mapReadWrite` 是刻意约束——只读映射防止模块代码运行期意外改写 DEX 缓冲区，也避免 COW 页产生。`parallelStream` 并行处理多 DEX 的映射与解除，减少大模块加载延迟。
+
+框架 DEX（`lspd.dex`）走 `InMemoryDexClassLoader`（单个 ByteBuffer），模块 APK 走 `ByteBufferDexClassLoader`（数组）——两条路径互补，对应"单一框架 DEX"和"多 DEX 模块"两种形态。
 
 这一步同时服务于隐蔽性（见 [安全与隐蔽性设计](./security)）和稳定性（ashmem 不解除映射会持续占内存并留 FD，长期运行泄漏）。
 

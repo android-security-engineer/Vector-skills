@@ -1,6 +1,6 @@
 # 🎯 VectorInlinedCallers · 内联调用 registry
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorInlinedCallers.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorInlinedCallers.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/core/VectorInlinedCallers.kt)
 > 🟦 xposed 模块 · 需去优化的内联调用点注册表
 
 ## 类职责

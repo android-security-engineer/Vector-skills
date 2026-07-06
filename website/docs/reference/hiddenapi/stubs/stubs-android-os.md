@@ -2,7 +2,7 @@
 
 `android.os.*` 桩覆盖 Binder 基础设施、系统服务获取、系统属性、SELinux、多用户、POSIX 包装与各类系统工具类。这是桩数量最多的一个包，是 Vector 与 Android 系统服务交互的基础。
 
-> 📂 `hiddenapi/stubs/src/main/java/android/os/` · `android.system/` · `android.util/`
+> 📂 [`hiddenapi/stubs/src/main/java/android/os/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/stubs/src/main/java/android/os/) · [`android.system/`](https://github.com/android-security-engineer/Vector-skills/blob/master/android.system/) · [`android.util/`](https://github.com/android-security-engineer/Vector-skills/blob/master/android.util/)
 > 🏛️ hiddenapi · [stubs 总览](.) · [bridge](../bridge)
 
 ## 桩类一览

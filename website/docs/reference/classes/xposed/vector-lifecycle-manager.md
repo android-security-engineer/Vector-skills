@@ -1,6 +1,6 @@
 # 🔁 VectorLifecycleManager · 生命周期分发
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/VectorLifecycleManager.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/VectorLifecycleManager.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/VectorLifecycleManager.kt)
 > 🟦 xposed 模块 · 现代 Xposed 模块事件派发器
 
 ## 类职责

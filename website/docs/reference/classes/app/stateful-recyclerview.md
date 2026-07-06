@@ -1,6 +1,6 @@
 # 🧩 StatefulRecyclerView
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/widget/StatefulRecyclerView.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/widget/StatefulRecyclerView.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/widget/StatefulRecyclerView.java)
 > 🟦 app 模块 · 带状态保存的 RecyclerView 基类
 
 ## 类职责

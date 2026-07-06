@@ -1,6 +1,6 @@
 # 🎨 resources_hook.cpp
 
-> 📂 `native/src/jni/resources_hook.cpp`
+> 📂 [`native/src/jni/resources_hook.cpp`](https://github.com/android-security-engineer/Vector-skills/blob/master/native/src/jni/resources_hook.cpp)
 > 🟦 native 模块 · 二进制 XML 突变与资源 hook
 
 ## 文件职责

@@ -2,7 +2,7 @@
 
 运行时桥接层：把编译期桩方法调用转发到真实的 Android hidden API。两个类，职责清晰。
 
-> 📂 `hiddenapi/bridge/src/main/java/hidden/`
+> 📂 [`hiddenapi/bridge/src/main/java/hidden/`](https://github.com/android-security-engineer/Vector-skills/blob/master/hiddenapi/bridge/src/main/java/hidden/)
 > 🏛️ hiddenapi · bridge · 包：`hidden`
 
 ## 类清单

@@ -1,6 +1,6 @@
 # ♿ AccessibilityUtils · 无障碍辅助
 
-> 📂 `app/src/main/java/org/lsposed/manager/util/`
+> 📂 [`app/src/main/java/org/lsposed/manager/util/`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/util/)
 > 🟦 app 模块 · 动画开关探测与无障碍占位委托
 
 ## 包职责

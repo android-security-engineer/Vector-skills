@@ -1,6 +1,6 @@
 # 🧰 ModuleUtil
 
-> 📂 `app/src/main/java/org/lsposed/manager/util/ModuleUtil.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/util/ModuleUtil.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/util/ModuleUtil.java)
 > 🟦 app 模块 · 本地模块工具与 InstalledModule
 
 ## 类职责

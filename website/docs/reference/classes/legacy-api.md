@@ -1,6 +1,6 @@
 # legacy · API 根包
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/)
 > 🟦 经典 Xposed Java API 中枢
 
 ## 包职责

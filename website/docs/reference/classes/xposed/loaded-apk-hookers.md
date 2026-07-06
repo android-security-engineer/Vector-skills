@@ -1,6 +1,6 @@
 # 📦 LoadedApkHookers · ClassLoader 生命周期 hook
 
-> 📂 `xposed/src/main/kotlin/org/matrix/vector/impl/hookers/LoadedApkHookers.kt`
+> 📂 [`xposed/src/main/kotlin/org/matrix/vector/impl/hookers/LoadedApkHookers.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/xposed/src/main/kotlin/org/matrix/vector/impl/hookers/LoadedApkHookers.kt)
 > 🟦 xposed 模块 · `LoadedApk` 构造与 ClassLoader 创建拦截
 
 ## 类职责

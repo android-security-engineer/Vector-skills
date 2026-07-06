@@ -1,6 +1,6 @@
 # 🧩 ModulesFragment
 
-> 📂 `app/src/main/java/org/lsposed/manager/ui/fragment/ModulesFragment.java`
+> 📂 [`app/src/main/java/org/lsposed/manager/ui/fragment/ModulesFragment.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/app/src/main/java/org/lsposed/manager/ui/fragment/ModulesFragment.java)
 > 🟦 app 模块 · 模块列表（多用户分页）
 
 ## 类职责

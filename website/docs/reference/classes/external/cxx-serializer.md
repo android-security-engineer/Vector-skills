@@ -2,8 +2,8 @@
 
 Vector 的 IPC 数据跨进程传输**不依赖 KotlinX serialization**，而是基于 Android 原生的 Parcel/Bundle 机制与 AIDL 生成的 Stub。本文澄清实际的序列化方案。
 
-> 📂 `services/daemon-service/src/main/aidl/`（AIDL 模型定义）
-> 📂 `services/manager-service/build.gradle.kts`（依赖 `rikkax.parcelablelist`）
+> 📂 [`services/daemon-service/src/main/aidl/`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/daemon-service/src/main/aidl/)（AIDL 模型定义）
+> 📂 [`services/manager-service/build.gradle.kts`](https://github.com/android-security-engineer/Vector-skills/blob/master/services/manager-service/build.gradle.kts)（依赖 `rikkax.parcelablelist`）
 > 📡 services AIDL · 数据传输
 
 ## 实际方案：Parcel + Bundle + ParcelableListSlice

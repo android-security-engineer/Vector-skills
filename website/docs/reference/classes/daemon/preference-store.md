@@ -1,6 +1,6 @@
 # ⚙️ PreferenceStore
 
-> 📂 `daemon/src/main/kotlin/org/matrix/vector/daemon/data/PreferenceStore.kt`
+> 📂 [`daemon/src/main/kotlin/org/matrix/vector/daemon/data/PreferenceStore.kt`](https://github.com/android-security-engineer/Vector-skills/blob/master/daemon/src/main/kotlin/org/matrix/vector/daemon/data/PreferenceStore.kt)
 > 🟦 daemon 模块 · 模块偏好差分更新与 lspd 配置
 
 ## 类职责

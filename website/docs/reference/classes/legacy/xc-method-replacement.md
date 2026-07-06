@@ -1,6 +1,6 @@
 # 🔁 XC_MethodReplacement · 替换式 hook 基类
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/XC_MethodReplacement.java`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/XC_MethodReplacement.java`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/XC_MethodReplacement.java)
 > 🟦 legacy 模块 · 完全替换原方法实现的回调基类
 
 ## 类职责

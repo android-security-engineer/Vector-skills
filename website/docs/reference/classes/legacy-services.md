@@ -1,6 +1,6 @@
 # legacy · services 包
 
-> 📂 `legacy/src/main/java/de/robv/android/xposed/services/`
+> 📂 [`legacy/src/main/java/de/robv/android/xposed/services/`](https://github.com/android-security-engineer/Vector-skills/blob/master/legacy/src/main/java/de/robv/android/xposed/services/)
 > 🟦 文件访问服务抽象
 
 ## 包职责
